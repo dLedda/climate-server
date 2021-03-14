@@ -1,0 +1,31 @@
+{
+  "name": "climate-server",
+  "version": "0.0.1",
+  "description": "Server API and frontend dashboard for monitoring climate stats with the Raspberry Pi",
+  "scripts": {
+    "start": "concurrently -p \"[{name}]\" -n \"server,dashboard\" -c \"bgBlue.gray.bold,bgMagenta.gray.bold\" \"npm:server\" \"npm:dashboard-static\"",
+    "build": "sh ./build.sh",
+    "server": "cd ./server && npm run dev",
+    "dashboard-static": "cd ./dashboard && npm run build-watch",
+    "dashboard-serve": "cd ./dashboard && npm run dev"
+  },
+  "dependencies": {
+    "child-process-promise": "^2.2.1",
+    "dotenv": "^8.2.0",
+    "ejs": "^3.1.6",
+    "express": "^5.0.0-alpha.8",
+    "mysql2": "^2.2.5",
+    "node-fetch": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/child-process-promise": "^2.2.1",
+    "@typescript-eslint/eslint-plugin": "^4.17.0",
+    "@typescript-eslint/parser": "^4.17.0",
+    "concurrently": "^6.0.0",
+    "eslint": "^7.21.0",
+    "prettier": "^2.1.2",
+    "typescript": "^4.2.3"
+  },
+  "author": "Daniel Ledda",
+  "license": "ISC"
+}

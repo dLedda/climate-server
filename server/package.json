@@ -1,0 +1,12 @@
+{
+  "name": "climate-server",
+  "version": "1.0.0",
+  "devDependencies": {
+    "@types/node-fetch": "^2.5.8",
+    "@types/dotenv": "^8.2.0",
+    "@types/express": "^4.17.11"
+  },
+  "scripts": {
+    "dev": "concurrently -n \"typescript,nodemon\" -c \"bgGreen.gray.bold,bgYellow.gray.bold\" \"tsc -w\" \"nodemon ../app-dist/server/main.js\""
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "development": true,
+  "defaultMinuteSpan": 60,
+  "reloadIntervalSec": 30,
+  "dataEndpoint": "/climate/api"
+}

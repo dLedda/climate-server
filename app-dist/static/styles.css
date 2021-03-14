@@ -1,0 +1,130 @@
+html, body {
+    margin: 0;
+    height: 100%;
+    background-color: #fff1de;
+}
+
+.overlay {
+    background-color: rgba(255, 255, 255, 0.5);
+    transition: opacity 1s;
+    opacity: 100%;
+}
+
+.main-content-grid {
+    height: 80%;
+    width: 80%;
+    display: grid;
+    text-align: center;
+}
+.main-content-grid > * {
+    display: block;
+}
+
+.center {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    align-items: center;
+    justify-content: center;
+}
+
+.center > * {
+    align-content: center;
+}
+
+.hidden {
+    opacity: 0;
+    z-index: -1;
+}
+
+h1 {
+    display: block;
+    font-family: "Georgia", serif;
+    font-weight: normal;
+    color: #7b5b2f;
+}
+
+.widget {
+    display: flex;
+    justify-content: space-around;
+    flex-direction: column;
+    margin: 1em;
+    padding: 1em;
+    border-radius: 1em;
+    border: 0.2em #c7ab82 solid;
+    background-color: white;
+}
+
+.widget h2 {
+    font-family: "Georgia", serif;
+    font-weight: normal;
+    color: #7b5b2f;
+    font-size: 1em;
+    display: block;
+}
+
+.widget-body {
+    margin: auto;
+}
+
+.minus-button,
+.plus-button {
+    display: inline-block;
+    opacity: 50%;
+    font-size: 20px;
+}
+.display-mode-widget-mins .minus-button,
+.display-mode-widget-mins .plus-button {
+    font-size: 30px;
+}
+.minus-button:hover,
+.plus-button:hover {
+    opacity: 100%;
+}
+.minus-button:active,
+.plus-button:active {
+    color: red;
+}
+.minus-button::before {
+    content: "−";
+}
+.plus-button::before {
+    content: "+";
+}
+
+.display-mode-widget-mins .min-count {
+    display: inline-block;
+    font-size: 30px;
+    margin: 10px 0 10px 0;
+}
+.display-mode-widget-mins input {
+    border: none;
+    display: inline-block;
+    font-size: 30px;
+    width: 64px;
+    text-align: center;
+    margin: 10px 0 10px 0;
+    background-color: white;
+}
+
+.display-mode-widget-date {
+    display: inline-block;
+    font-size: 12px;
+    line-height: 20px;
+    margin: 5px 0 5px 0;
+}
+
+.countdown {
+    font-size: 20px;
+}
+
+.timer-widget .last-update {
+    margin-top: 20px;
+    color: gray;
+    font-size: 12px;
+}
