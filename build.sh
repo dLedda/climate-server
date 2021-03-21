@@ -1,3 +1,3 @@
 #!/bin/bash
 
-(cd ./server && tsc -w) & (cd ./dashboard && npm build)
+(cd ./server && tsc) & (cd ./dashboard && npm run build)
