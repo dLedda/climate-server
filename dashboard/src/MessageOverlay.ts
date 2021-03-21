@@ -1,33 +1,34 @@
 import {AppStore, getAppState} from "./StateStore";
-import {UIComponent} from "./AppUI";
+import UIComponent from "./UIComponent";
 
-class MessageOverlay implements UIComponent {
+class MessageOverlay extends UIComponent {
     private element: HTMLDivElement;
     private textElement: HTMLSpanElement;
-    private showingError: boolean = false;
+    private showingError = false;
 
     constructor() {
+        super();
         this.build();
-        AppStore().subscribe("overlayText", () => this.update());
-        AppStore().subscribe("isLoading", () => this.update());
-        AppStore().subscribe("fatalError", () => this.showError())
+        AppStore().subscribeStoreVal("overlayText", () => this.update());
+        AppStore().subscribeStoreVal("isLoading", () => this.update());
+        AppStore().subscribeStoreVal("fatalError", () => this.showError());
         this.update();
     }
 
     private build() {
-        this.element = document.createElement('div');
-        this.element.classList.add('overlay', 'center');
-        this.textElement = document.createElement('span');
+        this.element = document.createElement("div");
+        this.element.classList.add("overlay", "center");
+        this.textElement = document.createElement("span");
         this.textElement.innerText = "";
         this.element.appendChild(this.textElement);
     }
 
     private show() {
-        this.element.classList.remove('hidden');
+        this.element.classList.remove("hidden");
     }
 
     private hide() {
-        this.element.classList.add('hidden');
+        this.element.classList.add("hidden");
     }
 
     private showError() {

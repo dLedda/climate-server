@@ -6,7 +6,7 @@ import {ClayPIError} from "./errors";
 
 async function pingSensors(): Promise<Omit<ISOSnapshot, "id">> {
     try {
-        const process = await exec(`python3 ${path.resolve(__dirname + "/../scripts/pinger-test.py")}`);
+        const process = await exec(`python3 ${path.resolve(__dirname + "/../scripts/climate-pinger.py")}`);
         const result = process.stdout;
         const snapshotArray = result.split("\t").map(piece => piece.trim());
         return {

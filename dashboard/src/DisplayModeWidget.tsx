@@ -21,9 +21,9 @@ class DisplayModeWidget extends UIComponent {
             title: "Displaying:",
             body: this.mainDisplay,
         });
-        AppStore().subscribe("minutesDisplayed", () => this.updateDisplay());
-        AppStore().subscribe("displayMode", () => this.updateDisplay());
-        AppStore().subscribe("displayWindow", () => this.updateDisplay());
+        AppStore().subscribeStoreVal("minutesDisplayed", () => this.updateDisplay());
+        AppStore().subscribeStoreVal("displayMode", () => this.updateDisplay());
+        AppStore().subscribeStoreVal("displayWindow", () => this.updateDisplay());
     }
 
     private WindowStartTime({ ctx }: {ctx: DisplayModeWidget}) {
@@ -109,22 +109,22 @@ class DisplayModeWidget extends UIComponent {
             <div>From</div>
             <ctx.MinusButton onclick={() => {
                 const displayWindow = AppStore().getState().displayWindow;
-                AppStore().setDisplayWindow({start: displayWindow.start - 60000, stop: displayWindow.stop});
+                AppStore().setDisplayWindow({start: displayWindow.start - 60, stop: displayWindow.stop});
             }}/>
             <ctx.WindowStartTime ctx={ctx}/>
             <ctx.PlusButton onclick={() => {
                 const displayWindow = AppStore().getState().displayWindow;
-                AppStore().setDisplayWindow({start: displayWindow.start + 60000, stop: displayWindow.stop});
+                AppStore().setDisplayWindow({start: displayWindow.start + 60, stop: displayWindow.stop});
             }}/>
             <div>to</div>
             <ctx.MinusButton onclick={() => {
                 const displayWindow = AppStore().getState().displayWindow;
-                AppStore().setDisplayWindow({start: displayWindow.start, stop: displayWindow.stop - 60000});
+                AppStore().setDisplayWindow({start: displayWindow.start, stop: displayWindow.stop - 60});
             }}/>
             <ctx.WindowStopTime ctx={ctx}/>
             <ctx.PlusButton onclick={() => {
                 const displayWindow = AppStore().getState().displayWindow;
-                AppStore().setDisplayWindow({start: displayWindow.start, stop: displayWindow.stop + 60000});
+                AppStore().setDisplayWindow({start: displayWindow.start, stop: displayWindow.stop + 60});
             }}/>
         </div>);
     }
@@ -147,8 +147,8 @@ class DisplayModeWidget extends UIComponent {
     private updateDisplay() {
         if (getAppState().displayMode === "window") {
             this.mainDisplay.children.item(0).replaceWith(this.fromRef(this.windowedDisplayRef));
-            this.fromRef(this.windowStartTimeRef).innerText = new Date(getAppState().displayWindow.start).toLocaleString();
-            this.fromRef(this.windowStopTimeRef).innerText = new Date(getAppState().displayWindow.stop).toLocaleString();
+            this.fromRef(this.windowStartTimeRef).innerText = new Date(getAppState().displayWindow.start * 1000).toLocaleString();
+            this.fromRef(this.windowStopTimeRef).innerText = new Date(getAppState().displayWindow.stop * 1000).toLocaleString();
         } else {
             this.mainDisplay.children.item(0).replaceWith(this.fromRef(this.minsDisplayRef));
             this.fromRef(this.minsCounterRef).innerText = getAppState().minutesDisplayed.toString();

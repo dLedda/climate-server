@@ -3,7 +3,7 @@ import SnapshotCollection from "./SnapshotCollection";
 import express, {Router} from "express";
 import {CollectionRegistry} from "./Collections";
 import {ClayPIError} from "./errors";
-import {toMySQLDatetime} from "./utils";
+import {unixTimeParamMiddleware} from "./utils";
 
 function newSnapshotRouter(collections: CollectionRegistry) {
     const router = Router();
@@ -79,15 +79,5 @@ function newSnapshotRouter(collections: CollectionRegistry) {
 
     return router;
 }
-
-const unixTimeParamMiddleware: express.Handler = (req, res, next) => {
-    const timeFormat = req.query.timeFormat;
-    if (typeof timeFormat !== "undefined" && timeFormat !== "iso" && timeFormat !== "unix") {
-        throw new ClayPIError("Parameter 'timeFormat' must be either 'iso' or 'unix'");
-    } else {
-        res.locals.timeFormat = timeFormat;
-        next();
-    }
-};
 
 export default newSnapshotRouter;

@@ -19,13 +19,13 @@ class TimerWidget extends UIComponent {
             title: "Next update in:",
             body: this.display,
         });
-        AppStore().subscribe("lastUpdateTime", () => this.resetTimer());
+        AppStore().subscribeStoreVal("lastUpdateTime", () => this.resetTimer());
         setInterval(() => this.refreshTimer(), 10);
         this.resetTimer();
     }
 
     private resetTimer() {
-        this.nextUpdateTime = getAppState().lastUpdateTime + getAppState().updateIntervalSeconds * 1000;
+        this.nextUpdateTime = getAppState().lastUpdateTime + getAppState().updateIntervalSeconds;
         this.fromRef(this.lastUpdateRef).innerText = new Date(getAppState().lastUpdateTime).toLocaleString();
         this.refreshTimer();
     }
@@ -46,9 +46,9 @@ class TimerWidget extends UIComponent {
     }
 
     private refreshTimer() {
-        const now = new Date().getTime();
+        const now = new Date().getTime() / 1000;
         if (now <= this.nextUpdateTime) {
-            this.fromRef(this.timerRef).innerText = `${((this.nextUpdateTime - now)/1000).toFixed(2)}s`;
+            this.fromRef(this.timerRef).innerText = `${(this.nextUpdateTime - now).toFixed(2)}s`;
         } else {
             this.fromRef(this.timerRef).innerText = "0.00s";
         }

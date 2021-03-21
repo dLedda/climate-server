@@ -1,4 +1,5 @@
-import {DataValidationError} from "./errors";
+import {ClayPIError, DataValidationError} from "./errors";
+import express from "express";
 
 export function toMySQLDatetime(datetime: number | string) {
     try {
@@ -24,3 +25,13 @@ export function toUnixTime(datetime: string | number) {
 export function toISOTime(datetime: string | number) {
     return new Date(datetime).toISOString();
 }
+
+export const unixTimeParamMiddleware: express.Handler = (req, res, next) => {
+    const timeFormat = req.query.timeFormat;
+    if (typeof timeFormat !== "undefined" && timeFormat !== "iso" && timeFormat !== "unix") {
+        throw new ClayPIError("Parameter 'timeFormat' must be either 'iso' or 'unix'");
+    } else {
+        res.locals.timeFormat = timeFormat;
+        next();
+    }
+};

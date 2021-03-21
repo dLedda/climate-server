@@ -13,3 +13,7 @@ export interface ISOSnapshot extends Snapshot {
 export interface UnixTimeSnapshot extends Snapshot {
     time: number,
 }
+
+export type SnapshotAttrTimeseries = Int32Array;
+
+export type ClimateDataType = "temp" | "humidity" | "co2";

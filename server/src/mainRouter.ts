@@ -2,15 +2,18 @@ import express from "express";
 import {ClayPIError, GenericPersistenceError} from "./errors";
 import newSnapshotRouter from "./snapshotRouter";
 import {CollectionRegistry} from "./Collections";
+import newByteSeriesRouter from "./byteSeriesRouter";
 
 export function newMainRouter(collections: CollectionRegistry) {
     const router = express.Router();
     const snapshotRouter = newSnapshotRouter(collections);
+    const byteSeriesRouter = newByteSeriesRouter(collections);
 
     router.get("/dashboard", (req, res) => {
         res.render("index.ejs", { rootUrl: req.app.locals.rootUrl });
     });
     router.use("/api/snapshots", snapshotRouter);
+    router.use("/api/timeseries", byteSeriesRouter);
     router.use(topLevelErrorHandler);
 
     return router;

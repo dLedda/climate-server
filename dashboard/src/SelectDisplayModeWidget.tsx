@@ -16,7 +16,7 @@ export default class SelectDisplayModeWidget extends UIComponent {
             title: "Display Mode:",
             body: this.mainBody,
         });
-        AppStore().subscribe("displayMode", () => this.update());
+        AppStore().subscribeStoreVal("displayMode", () => this.update());
     }
 
     private selectMode(mode: DisplayMode) {

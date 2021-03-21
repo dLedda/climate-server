@@ -62,6 +62,7 @@ class AppUI extends UIComponent {
 
     bootstrap(rootNode: string) {
         document.getElementById(rootNode).append(this.element);
+        this.chartWidget.updateDimensions();
     }
 
     current(): HTMLElement {
