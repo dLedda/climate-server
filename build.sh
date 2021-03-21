@@ -1,3 +1,3 @@
 #!/bin/bash
 
-(cd ./server && tsc -w) & (cd ./server nodemon ./dist/main.js & (cd ./dashboard/ && cp -- *.log ~/Desktop)
+(cd ./server && tsc -w) & (cd ./dashboard && npm build)
