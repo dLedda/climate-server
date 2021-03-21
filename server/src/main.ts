@@ -5,7 +5,7 @@ import {setupCollections} from "./Collections";
 import path from "path";
 import {startSensorPinger} from "./pingSensors";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname + "./.env") });
 const SERVER_ROOT = process.env.SERVER_ROOT ?? "/";
 
 async function main() {
