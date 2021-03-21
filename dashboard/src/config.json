@@ -2,5 +2,5 @@
   "development": true,
   "defaultMinuteSpan": 60,
   "reloadIntervalSec": 30,
-  "dataEndpoint": "http://tortedda.local/climate/api"
+  "dataEndpoint": "/climate/api"
 }
