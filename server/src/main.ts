@@ -16,9 +16,11 @@ async function main() {
         const app = express();
         app.use(express.json());
         if (process.env.DEV) {
-            app.use(cors({
-                origin: "http://192.168.0.181/"
-            }));
+            const corsMiddleware = cors({
+                origin: "http://localhost:3000/"
+            });
+            app.use(corsMiddleware);
+            app.options("*", corsMiddleware);
         }
         app.set("port", process.env.PORT || 3000);
         app.use(express.urlencoded({ extended: false}));
