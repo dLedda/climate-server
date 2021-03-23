@@ -1,4 +1,4 @@
-import {AppStore, getAppState} from "./StateStore";
+import {AppStore, getAppState} from "../StateStore";
 import UIComponent from "./UIComponent";
 
 class MessageOverlay extends UIComponent {

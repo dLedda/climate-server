@@ -1,7 +1,7 @@
-import {AppStore, DisplayMode, getAppState, TimeWindow} from "./StateStore";
+import {AppStore, DisplayMode, getAppState} from "../StateStore";
 import GridWidget, {GridProps} from "./GridWidget";
 import UIComponent from "./UIComponent";
-import ClimateChart from "./ClimateChart";
+import ClimateChart from "../ClimateChart";
 
 class ClimateChartWidget extends UIComponent {
     private readonly skeleton: GridWidget;

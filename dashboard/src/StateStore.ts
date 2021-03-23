@@ -90,6 +90,7 @@ class AppStateStore {
             stop = this.state.lastUpdateTime;
         }
         this.addLoad();
+        console.log(start, stop);
         for (const timeseries of this.state.timeseries) {
             await timeseries.updateFromWindow(start, stop);
         }
@@ -101,6 +102,7 @@ class AppStateStore {
     }
 
     private async getNewTimeseriesData() {
+        const updateTime = new Date().getTime() / 1000;
         this.addLoad();
         for (const timeseries of this.state.timeseries) {
             await timeseries.getLatest();
@@ -110,7 +112,7 @@ class AppStateStore {
             this.notifyStoreVal("timeseries");
             this.eventCallbacks["timeseriesUpdated"].forEach(cb => cb(timeseries));
         }
-        this.setLastUpdateTime(new Date().getTime() / 1000);
+        this.setLastUpdateTime(updateTime);
     }
 
     getState(): AppState {

@@ -1,6 +1,6 @@
 import GridWidget, {GridProps} from "./GridWidget";
-import {AppStore, DisplayMode, getAppState} from "./StateStore";
-import * as JSX from "./JSXFactory";
+import {AppStore, DisplayMode, getAppState} from "../StateStore";
+import * as JSX from "../JSXFactory";
 import UIComponent from "./UIComponent";
 
 class DisplayModeWidget extends UIComponent {

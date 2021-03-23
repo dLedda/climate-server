@@ -1,6 +1,6 @@
 import config from "./config.json";
 import {AppStore, getAppState, initStore} from "./StateStore";
-import AppUI from "./AppUI";
+import AppUI from "./ui-components/AppUI";
 import Timeseries from "./Timeseries";
 import {ClayPIDashboardError} from "./errors";
 export {config};
@@ -37,9 +37,21 @@ async function init() {
         documentReady: false,
         timeseries: [],
     });
-    AppStore().addTimeseries(new Timeseries("temp", (start, stop) => loadClimateTimeseriesData("temp", start, stop)));
-    AppStore().addTimeseries(new Timeseries("humidity", (start, stop) => loadClimateTimeseriesData("humidity", start, stop)));
-    AppStore().addTimeseries(new Timeseries("co2", (start, stop) => loadClimateTimeseriesData("co2", start, stop)));
+    AppStore().addTimeseries(new Timeseries(
+        "temp",
+        (start, stop) => loadClimateTimeseriesData("temp", start, stop),
+        getAppState().updateIntervalSeconds
+    ));
+    AppStore().addTimeseries(new Timeseries(
+        "humidity",
+        (start, stop) => loadClimateTimeseriesData("humidity", start, stop),
+        getAppState().updateIntervalSeconds
+    ));
+    AppStore().addTimeseries(new Timeseries(
+        "co2",
+        (start, stop) => loadClimateTimeseriesData("co2", start, stop),
+        getAppState().updateIntervalSeconds
+    ));
     const ui = new AppUI();
     ui.bootstrap("root");
 }

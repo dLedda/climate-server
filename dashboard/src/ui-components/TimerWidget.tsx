@@ -1,7 +1,7 @@
-import {AppStore, getAppState} from "./StateStore";
+import {AppStore, getAppState} from "../StateStore";
 import GridWidget, {GridProps} from "./GridWidget";
 import UIComponent from "./UIComponent";
-import * as JSX from "./JSXFactory";
+import * as JSX from "../JSXFactory";
 
 class TimerWidget extends UIComponent {
     private readonly display: HTMLElement;
@@ -26,7 +26,7 @@ class TimerWidget extends UIComponent {
 
     private resetTimer() {
         this.nextUpdateTime = getAppState().lastUpdateTime + getAppState().updateIntervalSeconds;
-        this.fromRef(this.lastUpdateRef).innerText = new Date(getAppState().lastUpdateTime).toLocaleString();
+        this.fromRef(this.lastUpdateRef).innerText = new Date(getAppState().lastUpdateTime * 1000).toLocaleString();
         this.refreshTimer();
     }
 

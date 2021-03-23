@@ -1,7 +1,7 @@
 import GridWidget, {GridProps} from "./GridWidget";
-import {AppStore, getAppState} from "./StateStore";
+import {AppStore, getAppState} from "../StateStore";
 import UIComponent from "./UIComponent";
-import * as JSX from "./JSXFactory";
+import * as JSX from "../JSXFactory";
 
 class TimezoneWidget extends UIComponent {
     private skeleton: GridWidget;

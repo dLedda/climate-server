@@ -1,7 +1,7 @@
 import UIComponent from "./UIComponent";
-import * as JSX from "./JSXFactory";
+import * as JSX from "../JSXFactory";
 import GridWidget, {GridProps} from "./GridWidget";
-import {AppStore, DisplayMode, getAppState} from "./StateStore";
+import {AppStore, DisplayMode, getAppState} from "../StateStore";
 
 export default class SelectDisplayModeWidget extends UIComponent {
     private mainBody: HTMLElement;

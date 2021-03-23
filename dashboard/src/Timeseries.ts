@@ -20,11 +20,13 @@ class Timeseries {
         maxIndex: -Infinity,
     };
     private colour: string;
+    private tolerance: number;
 
-    constructor(name: string, loader: TimeseriesLoader) {
+    constructor(name: string, loader: TimeseriesLoader, tolerance?: number) {
         this.cache = new Int32Array();
         this.loader = loader;
         this.name = name;
+        this.tolerance = tolerance ?? 0;
         this.colour = `rgb(${Math.random() * 255},${Math.random() * 255},${Math.random() * 255})`;
     }
 
@@ -70,12 +72,14 @@ class Timeseries {
                 if (this.cache.length === 0) {
                     this.fetching = true;
                     await this.fullFetch(start, stop);
-                } else if (this.cache[1] > start) {
+                }
+                if (this.cache[1] > start + this.tolerance) {
                     this.fetching = true;
-                    await this.fetchPrior(start);
-                } else if (this.cache[this.currentEndPointer - 1] < stop) {
+                    await this.fetchPrior(this.cache[1], start);
+                }
+                if (this.cache[this.currentEndPointer - 1] < stop - this.tolerance) {
                     this.fetching = true;
-                    await this.fetchAnterior(stop);
+                    await this.fetchAfter(this.cache[this.currentEndPointer - 1], stop);
                 }
             } catch (e) {
                 throw new Error(`Error fetching timeseries data: ${e}`);
@@ -87,7 +91,7 @@ class Timeseries {
     async getLatest() {
         this.fetching = true;
         try {
-            await this.fetchAnterior(this.cache[this.currentEndPointer - 1]);
+            await this.fetchAfter(this.cache[this.currentEndPointer - 1]);
         } catch (e) {
             throw new Error(`Error fetching timeseries data: ${e}`);
         }
@@ -104,10 +108,13 @@ class Timeseries {
         }
     }
 
-    private async fetchAnterior(after: number) {
+    private async fetchAfter(after: number, atLeastUntil?: number) {
         try {
-            const doubleTimespan = 2 * (this.cache[this.currentEndPointer - 1] - this.cache[1]);
-            const result = await this.loader(after, after + doubleTimespan);
+            let forwardDist = 2 * (this.cache[this.currentEndPointer - 1] - this.cache[1]);
+            if (atLeastUntil && (atLeastUntil > after + forwardDist)) {
+                forwardDist = atLeastUntil - after;
+            }
+            const result = await this.loader(after, after + forwardDist);
             const newCache = new Int32Array(this.cache.length + result.length);
             newCache.set(this.cache, 0);
             newCache.set(result, this.currentEndPointer);
@@ -119,10 +126,13 @@ class Timeseries {
         }
     }
 
-    private async fetchPrior(before: number) {
+    private async fetchPrior(priorTo: number, atLeastUntil?: number) {
         try {
-            const doubleTimespan = 2 * (this.cache[this.currentEndPointer - 1] - this.cache[1]);
-            const result = await this.loader(before - doubleTimespan, before);
+            let backDist = 2 * (this.cache[this.currentEndPointer - 1] - this.cache[1]);
+            if (atLeastUntil < priorTo - backDist) {
+                backDist = priorTo - atLeastUntil;
+            }
+            const result = await this.loader(priorTo - backDist, priorTo);
             const newCache = new Int32Array(this.cache.length + result.length);
             newCache.set(result, 0);
             newCache.set(this.cache, result.length);
