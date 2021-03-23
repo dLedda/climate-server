@@ -4,7 +4,6 @@ import {newMainRouter} from "./mainRouter";
 import {setupCollections} from "./Collections";
 import path from "path";
 import {startSensorPinger} from "./pingSensors";
-import cors from "cors";
 
 dotenv.config({ path: path.resolve(__dirname + "/.env") });
 const SERVER_ROOT = process.env.SERVER_ROOT ?? "/";
@@ -15,13 +14,6 @@ async function main() {
         const mainRouter = newMainRouter(collections);
         const app = express();
         app.use(express.json());
-        if (process.env.DEV) {
-            const corsMiddleware = cors({
-                origin: "http://localhost:3000/"
-            });
-            app.use(corsMiddleware);
-            app.options("*", corsMiddleware);
-        }
         app.set("port", process.env.PORT || 3000);
         app.use(express.urlencoded({ extended: false}));
         app.locals = {
