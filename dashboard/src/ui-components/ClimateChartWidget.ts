@@ -1,7 +1,7 @@
 import {AppStore, DisplayMode, getAppState} from "../StateStore";
 import GridWidget, {GridProps} from "./GridWidget";
 import UIComponent from "./UIComponent";
-import ClimateChart from "../ClimateChart";
+import ClimateChart, {ScaleId} from "../ClimateChart";
 
 class ClimateChartWidget extends UIComponent {
     private readonly skeleton: GridWidget;
@@ -54,9 +54,8 @@ class ClimateChartWidget extends UIComponent {
             AppStore().addLoad();
             const ctx = this.canvasElement.getContext("2d", {alpha: false});
             this.chart = new ClimateChart(ctx);
-            for (const timeseries of getAppState().timeseries) {
-                this.chart.addTimeseries(timeseries);
-            }
+            getAppState().leftTimeseries.forEach(timeseries => this.chart.addTimeseries(timeseries, ScaleId.Left));
+            getAppState().rightTimeseries.forEach(timeseries => this.chart.addTimeseries(timeseries, ScaleId.Right));
             await this.rerender();
             this.initialised = true;
         } catch (e) {

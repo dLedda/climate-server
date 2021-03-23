@@ -1,14 +1,29 @@
 import Timeseries from "./Timeseries";
 
+interface Scale {
+    timeseries: Timeseries[];
+    valRange: {high: number, low: number};
+    width: number;
+}
+
+export enum ScaleId {
+    Left,
+    Right
+}
+
+const MIN_PIXELS_PER_POINT = 3;
+
 export default class ClimateChart {
     private readonly ctx: CanvasRenderingContext2D;
-    private readonly timeseries: Timeseries[] = [];
+    private readonly leftScale: Scale;
+    private readonly rightScale: Scale;
     private readonly lastMousePos = {x: 0, y: 0};
     private readonly indexRange = {start: 0, stop: 0};
-    private readonly valRange = {high: -Infinity, low: Infinity}
+    private readonly margins = {top: 20, bottom: 20};
     private formatTimestamp = (timestamp: number) => new Date(timestamp * 1000).toLocaleTimeString();
     private width = 0;
     private height = 0;
+    private resolution = 1;
     constructor(context: CanvasRenderingContext2D) {
         this.ctx = context;
         this.ctx.fillStyle = "rgb(255,255,255)";
@@ -17,6 +32,16 @@ export default class ClimateChart {
         this.ctx.fill();
         this.ctx.translate(0.5, 0.5);
         this.ctx.canvas.onmousemove = (e) => this.handleMouseMove(e);
+        this.leftScale = {
+            timeseries: [],
+            valRange: {high: -Infinity, low: Infinity},
+            width: 0,
+        };
+        this.rightScale = {
+            timeseries: [],
+            valRange: {high: -Infinity, low: Infinity},
+            width: 0,
+        };
     }
 
     private updateDimensions() {
@@ -24,8 +49,12 @@ export default class ClimateChart {
         this.height = Number(getComputedStyle(this.ctx.canvas).height.slice(0, -2));
     }
 
-    addTimeseries(timeseries: Timeseries) {
-        this.timeseries.push(timeseries);
+    addTimeseries(timeseries: Timeseries, scale?: ScaleId) {
+        if (scale === ScaleId.Left) {
+            this.leftScale.timeseries.push(timeseries);
+        } else {
+            this.rightScale.timeseries.push(timeseries);
+        }
     }
 
     setRange(range: {start: number, stop: number}) {
@@ -33,7 +62,7 @@ export default class ClimateChart {
         this.indexRange.stop = range.stop;
     }
 
-    handleMouseMove(event: MouseEvent) {
+    private handleMouseMove(event: MouseEvent) {
         const {left: canvasX, top: canvasY} = this.ctx.canvas.getBoundingClientRect();
         const x = event.clientX - canvasX;
         const y = event.clientY - canvasY;
@@ -44,62 +73,112 @@ export default class ClimateChart {
 
     render() {
         this.updateDimensions();
-        this.ctx.fillStyle = "rgb(255,255,255)";
-        this.ctx.fillRect(0, 0, this.width, this.height);
-        this.ctx.fill();
-        this.setDisplayRange();
-        this.renderScale();
-        for (const timeseries of this.timeseries) {
-            this.renderTimeseries(timeseries);
-        }
+        this.clearCanvas();
+        this.updateResolution();
+        this.setDisplayRangeForScale(this.leftScale);
+        this.setDisplayRangeForScale(this.rightScale);
+        this.renderRightScale();
+        this.leftScale.timeseries.forEach(timeseries => this.renderTimeseries(timeseries, ScaleId.Left));
+        this.rightScale.timeseries.forEach(timeseries => this.renderTimeseries(timeseries, ScaleId.Right));
+        this.renderLeftScale();
         this.renderTooltips();
     }
 
-    private renderScale() {
+    private clearCanvas() {
+        this.ctx.fillStyle = "rgb(255,255,255)";
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        this.ctx.fill();
+    }
+
+    private updateResolution() {
+        const chartWidth = (this.width - this.rightScale.width - this.leftScale.width);
+        const points = this.rightScale.timeseries[0].cachedBetween(this.indexRange.start, this.indexRange.stop).length / 2;
+        const pixelsPerPoint = chartWidth / points;
+        if (pixelsPerPoint < MIN_PIXELS_PER_POINT) {
+            this.resolution = Math.ceil(MIN_PIXELS_PER_POINT / pixelsPerPoint);
+        }
+    }
+
+    private renderLeftScale() {
+        this.ctx.fillStyle = "rgb(255,255,255)";
+        this.ctx.fillRect(0, 0, this.leftScale.width, this.height);
+        this.ctx.fill();
         this.ctx.strokeStyle = "rgb(230,230,230)";
         this.ctx.fillStyle = "black";
         const ticks = 20;
-        const tickHeight = (this.valRange.high - this.valRange.low) / ticks;
-        let currentTick = this.valRange.low;
-        for (let i = 0; i < ticks; i++) {
+        const tickHeight = (this.leftScale.valRange.high - this.leftScale.valRange.low) / ticks;
+        let currentTick = this.leftScale.valRange.low - tickHeight;
+        for (let i = 0; i <= ticks; i++) {
             currentTick += tickHeight;
-            const pos = Math.round(this.getY(currentTick));
+            const text = currentTick.toFixed(2);
+            const textWidth = this.ctx.measureText(text).width;
+            if (textWidth > this.leftScale.width) {
+                this.leftScale.width = textWidth + 10;
+            }
+            const pos = Math.round(this.getY(currentTick, ScaleId.Left));
+            this.ctx.fillText(text, 0, pos + 4);
+        }
+    }
+
+    private renderRightScale() {
+        this.ctx.strokeStyle = "rgb(230,230,230)";
+        this.ctx.fillStyle = "black";
+        const ticks = 20;
+        const tickHeight = (this.rightScale.valRange.high - this.rightScale.valRange.low) / ticks;
+        let currentTick = this.rightScale.valRange.low - tickHeight;
+        for (let i = 0; i <= ticks; i++) {
+            currentTick += tickHeight;
+            const pos = Math.round(this.getY(currentTick, ScaleId.Right));
+            const text = currentTick.toFixed(2);
+            const textWidth = this.ctx.measureText(text).width;
+            if (textWidth > this.rightScale.width) {
+                this.rightScale.width = textWidth;
+            }
+            this.ctx.fillText(text, this.width - textWidth, pos + 4);
             this.ctx.beginPath();
-            this.ctx.moveTo(40, pos);
-            this.ctx.lineTo(this.width, pos);
+            this.ctx.moveTo(this.leftScale.width, pos);
+            this.ctx.lineTo(this.width - textWidth - 5, pos);
             this.ctx.stroke();
-            this.ctx.fillText(currentTick.toFixed(2), 0, pos + 4);
         }
     }
 
-    private setDisplayRange() {
-        for (const timeseries of this.timeseries) {
+    private setDisplayRangeForScale(scale: Scale) {
+        for (const timeseries of scale.timeseries) {
             const extrema = timeseries.getExtrema();
-            if (extrema.maxVal > this.valRange.high) {
-                this.valRange.high = extrema.maxVal;
+            if (extrema.maxVal > scale.valRange.high) {
+                scale.valRange.high = extrema.maxVal;
             }
-            if (extrema.minVal < this.valRange.low) {
-                this.valRange.low = extrema.minVal;
+            if (extrema.minVal < scale.valRange.low) {
+                scale.valRange.low = extrema.minVal;
             }
         }
     }
 
-    private renderTooltips() {
-        let bestDist = 20;
-        let bestTimeseries = this.timeseries[0];
+    private renderTooltips(radius = 20) {
+        let bestDist = radius;
+        let bestTimeseries = this.rightScale.timeseries[0];
         let bestIndex = 0;
         let bestVal = 0;
-        for (const timeseries of this.timeseries) {
-            const cache = timeseries.cachedBetween(this.indexRange.start, this.indexRange.stop);
-            for (let i = 0; i < cache.length; i += 2) {
-                const x = this.getX(cache[i + 1]);
-                const y = this.getY(cache[i]);
-                const dist = Math.sqrt((y - this.lastMousePos.y) ** 2 + (x - this.lastMousePos.x) ** 2);
-                if (dist < bestDist) {
-                    bestDist = dist;
-                    bestTimeseries = timeseries;
-                    bestIndex = cache[i + 1];
-                    bestVal = cache[i];
+        let bestScale = ScaleId.Right;
+        for (const scaleId of [ScaleId.Left, ScaleId.Right]) {
+            for (const timeseries of (scaleId === ScaleId.Right ? this.rightScale : this.leftScale).timeseries) {
+                const cache = timeseries.cachedBetween(
+                    this.getIndex(this.lastMousePos.x - radius / 2),
+                    this.getIndex(this.lastMousePos.x + radius / 2)
+                );
+                for (let i = 0; i < cache.length; i += 2) {
+                    const y = this.getY(cache[i], scaleId);
+                    if (y + radius / 2 >= this.lastMousePos.y && y - radius / 2 <= this.lastMousePos.y) {
+                        const x = this.getX(cache[i + 1]);
+                        const dist = Math.sqrt((y - this.lastMousePos.y) ** 2 + (x - this.lastMousePos.x) ** 2);
+                        if (dist < bestDist) {
+                            bestDist = dist;
+                            bestTimeseries = timeseries;
+                            bestIndex = cache[i + 1];
+                            bestVal = cache[i];
+                            bestScale = scaleId;
+                        }
+                    }
                 }
             }
         }
@@ -107,7 +186,7 @@ export default class ClimateChart {
             this.renderTooltip(
                 `${bestTimeseries.getName()} - (${bestVal.toFixed(2)}, ${this.formatTimestamp(bestIndex)})`,
                 this.getX(bestIndex),
-                this.getY(bestVal),
+                this.getY(bestVal, bestScale),
             );
         }
     }
@@ -117,36 +196,43 @@ export default class ClimateChart {
     }
 
     getX(index: number) {
-        return (index - this.indexRange.start) / (this.indexRange.stop - this.indexRange.start) * this.width;
+        return (index - this.indexRange.start) / (this.indexRange.stop - this.indexRange.start) * (this.width - this.rightScale.width - this.leftScale.width) + this.leftScale.width;
     }
 
-    getY(value: number) {
-        return this.height - (value - this.valRange.low) / (this.valRange.high - this.valRange.low) * this.height;
+    getY(value: number, scale: ScaleId) {
+        const valRange = scale === ScaleId.Left ? this.leftScale.valRange : this.rightScale.valRange;
+        return this.height - (value - valRange.low) / (valRange.high - valRange.low) * (this.height - this.margins.bottom - this.margins.top) - this.margins.top;
     }
 
     getIndex(x: number) {
-        return (x / this.width) * this.indexRange.stop;
+        return ((x - this.leftScale.width) / (this.width - this.leftScale.width - this.rightScale.width)) * (this.indexRange.stop - this.indexRange.start) + this.indexRange.start;
     }
 
-    getValue(y: number) {
-        return ((this.height - y) / this.height) * this.valRange.high;
+    getValue(y: number, scale: ScaleId) {
+        const valRange = scale === ScaleId.Left ? this.leftScale.valRange : this.rightScale.valRange;
+        return ((this.height - y) / this.height) * (valRange.high - valRange.low) + valRange.low;
     }
 
 
-    private renderTimeseries(timeseries: Timeseries) {
+    private renderTimeseries(timeseries: Timeseries, scale: ScaleId) {
         const timeseriesPoints = timeseries.cachedBetween(this.indexRange.start, this.indexRange.stop);
         this.ctx.strokeStyle = timeseries.getColour();
-        const drawBubbles = this.getX(timeseriesPoints[3]) - this.getX(timeseriesPoints[1]) > 6;
-        let y = this.getY(timeseriesPoints[0]);
+        let y = this.getY(timeseriesPoints[0], scale);
         let x = this.getX(timeseriesPoints[1]);
-        for (let i = 0; i < timeseriesPoints.length; i += 2) {
+        for (let i = 0; i < timeseriesPoints.length; i += 2 * this.resolution) {
             this.ctx.beginPath();
             this.ctx.moveTo(Math.round(x), Math.round(y));
-            y = this.getY(timeseriesPoints[i]);
-            x = this.getX(timeseriesPoints[i + 1]);
+            y = 0;
+            x = 0;
+            for (let j = 0; j < this.resolution * 2 && (j + 2 < timeseriesPoints.length); j += 2) {
+                y += timeseriesPoints[i + j];
+                x += timeseriesPoints[i + 1 + j];
+            }
+            y = this.getY(y / this.resolution, scale);
+            x = this.getX(x / this.resolution);
             this.ctx.lineTo(Math.round(x), Math.round(y));
             this.ctx.stroke();
-            if (drawBubbles) {
+            if (this.resolution === 1) {
                 this.ctx.beginPath();
                 this.ctx.ellipse(x, y, 2, 2, 0, 0, 2 * Math.PI);
                 this.ctx.stroke();

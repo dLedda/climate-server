@@ -100,6 +100,10 @@ h1 {
     display: inline-block;
     font-size: 30px;
     margin: 10px 0 10px 0;
+    transition: background-color 100ms;
+}
+.display-mode-widget-mins .min-count:hover {
+    background-color: #eaeaea;
 }
 .display-mode-widget-mins input {
     border: none;
@@ -128,6 +132,12 @@ h1 {
     font-size: 12px;
 }
 
+.timezone-widget span:nth-child(2) {
+    transition: background-color 100ms;
+}
+.timezone-widget span:nth-child(2):hover {
+    background-color: #eaeaea;
+}
 .timezone-widget input {
     border: none;
     display: inline-block;
@@ -135,7 +145,4 @@ h1 {
     text-align: center;
     margin: 10px 0 10px 0;
     background-color: white;
-}
-
-.chart-canvas {
 }

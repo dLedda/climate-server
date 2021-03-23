@@ -3,6 +3,8 @@ import {AppStore, getAppState, initStore} from "./StateStore";
 import AppUI from "./ui-components/AppUI";
 import Timeseries from "./Timeseries";
 import {ClayPIDashboardError} from "./errors";
+import {ScaleId} from "./ClimateChart";
+
 export {config};
 
 function getDisplayedMinutes() {
@@ -35,23 +37,32 @@ async function init() {
         fatalError: null,
         displayWindow: {start: now - getDisplayedMinutes() * 60, stop: now},
         documentReady: false,
-        timeseries: [],
+        leftTimeseries: [],
+        rightTimeseries: [],
     });
-    AppStore().addTimeseries(new Timeseries(
-        "temp",
-        (start, stop) => loadClimateTimeseriesData("temp", start, stop),
-        getAppState().updateIntervalSeconds
-    ));
-    AppStore().addTimeseries(new Timeseries(
-        "humidity",
-        (start, stop) => loadClimateTimeseriesData("humidity", start, stop),
-        getAppState().updateIntervalSeconds
-    ));
-    AppStore().addTimeseries(new Timeseries(
-        "co2",
-        (start, stop) => loadClimateTimeseriesData("co2", start, stop),
-        getAppState().updateIntervalSeconds
-    ));
+    AppStore().addTimeseries(
+        new Timeseries(
+            "temp",
+            (start, stop) => loadClimateTimeseriesData("temp", start, stop),
+            getAppState().updateIntervalSeconds
+        ),
+        ScaleId.Left);
+    AppStore().addTimeseries(
+        new Timeseries(
+            "humidity",
+            (start, stop) => loadClimateTimeseriesData("humidity", start, stop),
+            getAppState().updateIntervalSeconds
+        ),
+        ScaleId.Left
+    );
+    AppStore().addTimeseries(
+        new Timeseries(
+            "co2",
+            (start, stop) => loadClimateTimeseriesData("co2", start, stop),
+            getAppState().updateIntervalSeconds
+        ),
+        ScaleId.Right
+    );
     const ui = new AppUI();
     ui.bootstrap("root");
 }

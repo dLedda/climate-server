@@ -1,4 +1,5 @@
 import Timeseries from "./Timeseries";
+import {ScaleId} from "./ClimateChart";
 
 export class AppStateError extends Error {
     constructor(message: string) {
@@ -11,7 +12,7 @@ export type DisplayMode = "window" | "pastMins";
 
 export interface EventCallback {
     newTimeseries: (timeseries: Timeseries) => void;
-    timeseriesUpdated: (timeseries: Timeseries) => void;
+    timeseriesUpdated: (timeseries: Timeseries, scale?: ScaleId) => void;
 }
 type EventCallbackListing<K extends keyof EventCallback> = Record<K, EventCallback[K][]>;
 
@@ -25,7 +26,8 @@ interface AppState {
     displayWindow: TimeWindow;
     minutesDisplayed: number;
     utcOffset: number;
-    timeseries: Timeseries[],
+    leftTimeseries: Timeseries[],
+    rightTimeseries: Timeseries[],
     overlayText: string;
     dataEndpointBase: string;
     updateIntervalSeconds: number;
@@ -63,13 +65,18 @@ class AppStateStore {
         await this.getNewTimeseriesData();
     }
 
-    addTimeseries(timeseries: Timeseries) {
-        if (this.state.timeseries.indexOf(timeseries) >= 0) {
+    addTimeseries(timeseries: Timeseries, scale?: ScaleId) {
+        const group = scale === ScaleId.Left ? this.state.leftTimeseries : this.state.rightTimeseries;
+        if (group.indexOf(timeseries) >= 0) {
             throw new AppStateError("Timeseries has already been added!");
         }
-        this.state.timeseries.push(timeseries);
-        this.notifyStoreVal("timeseries");
-        this.eventCallbacks["newTimeseries"].forEach(cb => cb(timeseries));
+        if (scale === ScaleId.Left) {
+            group.push(timeseries);
+        } else {
+            group.push(timeseries);
+        }
+        this.notifyStoreVal(scale === ScaleId.Left ? "leftTimeseries" : "rightTimeseries");
+        this.eventCallbacks["newTimeseries"].forEach(cb => cb(timeseries, scale));
         this.updateTimeseriesFromSettings();
     }
 
@@ -90,29 +97,39 @@ class AppStateStore {
             stop = this.state.lastUpdateTime;
         }
         this.addLoad();
-        console.log(start, stop);
-        for (const timeseries of this.state.timeseries) {
+        for (const timeseries of this.state.leftTimeseries) {
+            await timeseries.updateFromWindow(start, stop);
+        }
+        for (const timeseries of this.state.rightTimeseries) {
             await timeseries.updateFromWindow(start, stop);
         }
         this.finishLoad();
-        for (const timeseries of this.state.timeseries) {
-            this.notifyStoreVal("timeseries");
-            this.eventCallbacks["timeseriesUpdated"].forEach(cb => cb(timeseries));
-        }
+        this.notifyAllTimeseriesUpdated();
     }
 
     private async getNewTimeseriesData() {
         const updateTime = new Date().getTime() / 1000;
         this.addLoad();
-        for (const timeseries of this.state.timeseries) {
+        for (const timeseries of this.state.leftTimeseries) {
+            await timeseries.getLatest();
+        }
+        for (const timeseries of this.state.rightTimeseries) {
             await timeseries.getLatest();
         }
         this.finishLoad();
-        for (const timeseries of this.state.timeseries) {
-            this.notifyStoreVal("timeseries");
+        this.setLastUpdateTime(updateTime);
+        this.notifyAllTimeseriesUpdated();
+    }
+
+    private notifyAllTimeseriesUpdated() {
+        for (const timeseries of this.state.leftTimeseries) {
+            this.notifyStoreVal("leftTimeseries");
             this.eventCallbacks["timeseriesUpdated"].forEach(cb => cb(timeseries));
         }
-        this.setLastUpdateTime(updateTime);
+        for (const timeseries of this.state.rightTimeseries) {
+            this.notifyStoreVal("rightTimeseries");
+            this.eventCallbacks["timeseriesUpdated"].forEach(cb => cb(timeseries));
+        }
     }
 
     getState(): AppState {
@@ -134,11 +151,13 @@ class AppStateStore {
 
     setDisplayWindow(newWin: TimeWindow) {
         if (newWin.start < newWin.stop) {
-            this.state.displayWindow = {...newWin};
-            this.notifyStoreVal("displayWindow");
-            this.updateTimeseriesFromSettings();
+            if (newWin.stop < this.state.lastUpdateTime) {
+                this.state.displayWindow = {...newWin};
+                this.notifyStoreVal("displayWindow");
+                this.updateTimeseriesFromSettings();
+            }
         } else {
-            throw new AppStateError(`Invalid display window from ${newWin.start} to ${newWin.stop}`);
+            console.warn(`Invalid display window from ${newWin.start} to ${newWin.stop}`);
         }
     }
 
