@@ -96,6 +96,8 @@ export default class ClimateChart {
         const pixelsPerPoint = chartWidth / points;
         if (pixelsPerPoint < MIN_PIXELS_PER_POINT) {
             this.resolution = Math.ceil(MIN_PIXELS_PER_POINT / pixelsPerPoint);
+        } else {
+            this.resolution = 1;
         }
     }
 
