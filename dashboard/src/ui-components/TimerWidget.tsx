@@ -20,14 +20,19 @@ class TimerWidget extends UIComponent {
             body: this.display,
         });
         AppStore().subscribeStoreVal("lastUpdateTime", () => this.resetTimer());
+        AppStore().subscribeStoreVal("utcOffset", () => this.resetTimer());
         setInterval(() => this.refreshTimer(), 10);
         this.resetTimer();
     }
 
     private resetTimer() {
         this.nextUpdateTime = getAppState().lastUpdateTime + getAppState().updateIntervalSeconds;
-        this.fromRef(this.lastUpdateRef).innerText = new Date(getAppState().lastUpdateTime * 1000).toLocaleString();
+        this.updateUpdateText();
         this.refreshTimer();
+    }
+
+    private updateUpdateText() {
+        this.fromRef(this.lastUpdateRef).innerText = new Date(getAppState().lastUpdateTime * 1000 + getAppState().utcOffset * 60 * 60 * 1000).toLocaleString();
     }
 
     private MainDisplay({ ctx }: { ctx: TimerWidget }) {

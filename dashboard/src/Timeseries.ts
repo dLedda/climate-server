@@ -1,5 +1,16 @@
 type TimeseriesLoader = (start: number, stop: number) => Promise<Int32Array>;
 
+type TimeseriesOptions = {
+    name: string,
+    loader: TimeseriesLoader,
+    tolerance?: number,
+    valueRangeOverride?: {
+        high: number,
+        low: number,
+    },
+    colour?: string,
+};
+
 type Extrema = {
     minVal: number,
     maxVal: number,
@@ -19,19 +30,48 @@ class Timeseries {
         minIndex: Infinity,
         maxIndex: -Infinity,
     };
+    private valExtremaOverride?: { high: number, low: number };
     private colour: string;
     private tolerance: number;
 
-    constructor(name: string, loader: TimeseriesLoader, tolerance?: number) {
+    constructor(options: TimeseriesOptions) {
         this.cache = new Int32Array();
-        this.loader = loader;
-        this.name = name;
-        this.tolerance = tolerance ?? 0;
-        this.colour = `rgb(${Math.random() * 150},${Math.random() * 150},${Math.random() * 150})`;
+        this.loader = options.loader;
+        this.name = options.name;
+        this.tolerance = options.tolerance ?? 0;
+        let newColour: string | null;
+        if (options.colour) {
+            const style = new Option().style;
+            style.color = options.colour;
+            newColour = style.color === options.colour ? options.colour : null;
+        }
+        this.colour = newColour ?? `rgb(${Math.random() * 150},${Math.random() * 150},${Math.random() * 150})`;
+        if (options.valueRangeOverride) {
+            this.valExtremaOverride = { ...options.valueRangeOverride };
+        }
     }
 
     getExtrema(): Extrema {
-        return Object.assign(this.extrema);
+        return Object.assign({}, this.extrema);
+    }
+
+    getExtremaInRange(start: number, stop: number): Extrema {
+        let maxVal = -Infinity;
+        let minVal = Infinity;
+        for (let i = this.findIndexInCache(start) - 1; i < this.findIndexInCache(stop) - 1; i += 2) {
+            if (this.cache[i] < minVal) {
+                minVal = this.cache[i];
+            }
+            if (this.cache[i] > maxVal) {
+                maxVal = this.cache[i];
+            }
+        }
+        return {
+            minIndex: this.extrema.minIndex,
+            maxIndex: this.extrema.maxIndex,
+            maxVal: this.valExtremaOverride.high > maxVal ? this.valExtremaOverride.high : maxVal,
+            minVal: this.valExtremaOverride.low < minVal ? this.valExtremaOverride.low : minVal,
+        };
     }
 
     getName() {
@@ -46,13 +86,16 @@ class Timeseries {
         return this.colour;
     }
 
-    cachedBetween(start: number, stop: number): Int32Array {
+    cachedBetween(start: number, stop: number, blockSize = 1): Int32Array {
         if (this.cache.length <= 0) {
             return new Int32Array();
         } else {
+            blockSize = Math.round(blockSize) * 2;
+            const cacheStartIndex = this.findIndexInCache(start);
+            const cacheStopIndex = this.findIndexInCache(stop);
             return this.cache.slice(
-                this.findIndexInCache(start) - 1,
-                this.findIndexInCache(stop)
+                (cacheStartIndex - (cacheStartIndex) % blockSize),
+                (cacheStopIndex + blockSize - (cacheStopIndex) % blockSize),
             );
         }
     }
@@ -140,7 +183,7 @@ class Timeseries {
             this.currentEndPointer += result.length;
             this.updateExtremaFrom(result);
         } catch (e) {
-            throw new Error(`Error fetching anterior data: ${e}`);
+            throw new Error(`Error fetching prior data: ${e}`);
         }
     }
 

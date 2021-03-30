@@ -7,7 +7,9 @@ class DisplayModeWidget extends UIComponent {
     private skeleton: GridWidget;
     private minsCounterRef: number;
     private windowStartTimeRef: number;
+    private windowStartTimeInputRef: number;
     private windowStopTimeRef: number;
+    private windowStopTimeInputRef: number;
     private windowedDisplayRef: number;
     private minsDisplayRef: number;
     private mainDisplay: HTMLElement;
@@ -24,20 +26,35 @@ class DisplayModeWidget extends UIComponent {
         AppStore().subscribeStoreVal("minutesDisplayed", () => this.updateDisplay());
         AppStore().subscribeStoreVal("displayMode", () => this.updateDisplay());
         AppStore().subscribeStoreVal("displayWindow", () => this.updateDisplay());
+        AppStore().subscribeStoreVal("utcOffset", () => this.updateDisplay());
+        this.updateDisplay();
     }
 
     private WindowStartTime({ ctx }: {ctx: DisplayModeWidget}) {
+        ctx.windowStartTimeInputRef = ctx.makeRef(<input
+            type={"datetime-local"}
+            onblur={() => ctx.onWindowStartInputBlur()}
+        />);
         ctx.windowStartTimeRef = ctx.makeRef(<div
-            className={"display-mode-widget-date"}>
-            {new Date(getAppState().displayWindow.start).toLocaleString()}
+            className={"display-mode-widget-date"}
+            onwheel={(e: WheelEvent) => ctx.onStartTimeInputScroll(e)}
+            onclick={() => ctx.onWindowStartDisplayClick()}>
+            {new Date(getAppState().displayWindow.start + getAppState().utcOffset * 60 * 60 * 1000).toLocaleString()}
         </div>);
         return ctx.fromRef(ctx.windowStartTimeRef);
     }
 
     private WindowStopTime({ctx}: {ctx: DisplayModeWidget}) {
+        ctx.windowStopTimeInputRef = ctx.makeRef(<input
+            value={new Date()}
+            type={"datetime-local"}
+            onblur={() => ctx.onWindowStopInputBlur()}
+        />);
         ctx.windowStopTimeRef = ctx.makeRef(<div
-            className={"display-mode-widget-date"}>
-            {new Date(getAppState().displayWindow.stop).toLocaleString()}
+            className={"display-mode-widget-date"}
+            onwheel={(e: WheelEvent) => ctx.onStopTimeInputScroll(e)}
+            onclick={() => ctx.onWindowStopDisplayClick()}>
+            {new Date(getAppState().displayWindow.stop + getAppState().utcOffset * 60 * 60 * 1000).toLocaleString()}
         </div>);
         return ctx.fromRef(ctx.windowStopTimeRef);
     }
@@ -48,10 +65,24 @@ class DisplayModeWidget extends UIComponent {
                 value={getAppState().minutesDisplayed.toString()}
                 onblur={(e: FocusEvent) => ctx.onMinutesCounterInputBlur(e)}/>);
         ctx.minsCounterRef = ctx.makeRef(
-            <div className={"min-count"} onclick={onclick}>
+            <div className={"min-count"} onclick={onclick} onwheel={(e: WheelEvent) => ctx.onMinutesCounterInputScroll(e)}>
                 {getAppState().minutesDisplayed.toString()}
             </div>);
         return ctx.fromRef(ctx.minsCounterRef);
+    }
+
+    private onMinutesCounterInputScroll(e: WheelEvent) {
+        AppStore().setMinutesDisplayed(getAppState().minutesDisplayed + e.deltaY);
+    }
+
+    private onStopTimeInputScroll(e: WheelEvent) {
+        const oldWin = getAppState().displayWindow;
+        AppStore().setDisplayWindow({start: oldWin.start, stop: oldWin.stop - e.deltaY * 60});
+    }
+
+    private onStartTimeInputScroll(e: WheelEvent) {
+        const oldWin = getAppState().displayWindow;
+        AppStore().setDisplayWindow({start: oldWin.start - e.deltaY * 60, stop: oldWin.stop});
     }
 
     private onMinutesCounterInputBlur(e: FocusEvent) {
@@ -88,6 +119,51 @@ class DisplayModeWidget extends UIComponent {
         input.focus();
         input.selectionStart = 0;
         input.selectionEnd = input.value.length;
+    }
+
+    private onWindowStopDisplayClick() {
+        const stopTimeDisplay = this.fromRef(this.windowStopTimeRef);
+        (stopTimeDisplay as HTMLInputElement).valueAsDate = new Date(getAppState().displayWindow.stop);
+        const stopTimeInputDisplay = this.fromRef(this.windowStopTimeInputRef) as HTMLInputElement;
+        stopTimeDisplay.replaceWith(stopTimeInputDisplay);
+        const date = new Date(getAppState().displayWindow.stop * 1000 + getAppState().utcOffset * 60 * 60 * 1000);
+        stopTimeInputDisplay.value = `${date.toLocaleDateString()}, ${date.toLocaleTimeString()}`;
+        stopTimeInputDisplay.focus();
+    }
+
+    private onWindowStopInputBlur() {
+        const stopTimeInput = this.fromRef(this.windowStopTimeInputRef);
+        const val = new Date((stopTimeInput as HTMLInputElement).value).getTime() / 1000;
+        if (!isNaN(val)) {
+            AppStore().setDisplayWindow({
+                start: getAppState().displayWindow.start,
+                stop: val
+            });
+        }
+        stopTimeInput.replaceWith(this.fromRef(this.windowStopTimeRef));
+    }
+
+    private onWindowStartDisplayClick() {
+        const startTimeDisplay = this.fromRef(this.windowStartTimeRef);
+        (startTimeDisplay as HTMLInputElement).valueAsDate = new Date(getAppState().displayWindow.start);
+        const startTimeInputDisplay = this.fromRef(this.windowStartTimeInputRef) as HTMLInputElement;
+        startTimeDisplay.replaceWith(startTimeInputDisplay);
+        const date = new Date(getAppState().displayWindow.start * 1000 + getAppState().utcOffset * 60 * 60 * 1000);
+        startTimeInputDisplay.value = `${date.toLocaleDateString()}, ${date.toLocaleTimeString()}`;
+        startTimeInputDisplay.focus();
+
+    }
+
+    private onWindowStartInputBlur() {
+        const startTimeInput = this.fromRef(this.windowStartTimeInputRef);
+        const val = new Date((startTimeInput as HTMLInputElement).value).getTime() / 1000;
+        if (!isNaN(val)) {
+            AppStore().setDisplayWindow({
+                start: val,
+                stop: getAppState().displayWindow.stop,
+            });
+        }
+        startTimeInput.replaceWith(this.fromRef(this.windowStartTimeRef));
     }
 
     private MinusButton(props: {onclick: () => any}) {
@@ -147,8 +223,11 @@ class DisplayModeWidget extends UIComponent {
     private updateDisplay() {
         if (getAppState().displayMode === "window") {
             this.mainDisplay.children.item(0).replaceWith(this.fromRef(this.windowedDisplayRef));
-            this.fromRef(this.windowStartTimeRef).innerText = new Date(getAppState().displayWindow.start * 1000).toLocaleString();
-            this.fromRef(this.windowStopTimeRef).innerText = new Date(getAppState().displayWindow.stop * 1000).toLocaleString();
+            const offset = getAppState().utcOffset * 60 * 60;
+            const startDate = new Date((getAppState().displayWindow.start + offset) * 1000);
+            const stopDate = new Date((getAppState().displayWindow.stop + offset) * 1000);
+            this.fromRef(this.windowStartTimeRef).innerText = startDate.toLocaleString();
+            this.fromRef(this.windowStopTimeRef).innerText = stopDate.toLocaleString();
         } else {
             this.mainDisplay.children.item(0).replaceWith(this.fromRef(this.minsDisplayRef));
             this.fromRef(this.minsCounterRef).innerText = getAppState().minutesDisplayed.toString();

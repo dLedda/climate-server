@@ -1,5 +1,6 @@
 import Timeseries from "./Timeseries";
-import {ScaleId} from "./ClimateChart";
+import {ScaleId} from "./chart/Chart";
+import config from "./config.json";
 
 export class AppStateError extends Error {
     constructor(message: string) {
@@ -11,9 +12,11 @@ export class AppStateError extends Error {
 export type DisplayMode = "window" | "pastMins";
 
 export interface EventCallback {
-    newTimeseries: (timeseries: Timeseries) => void;
-    timeseriesUpdated: (timeseries: Timeseries, scale?: ScaleId) => void;
+    timeseriesUpdated: (timeseries: Timeseries) => void;
+    newTimeseries: (timeseries: Timeseries, scale?: ScaleId) => void;
+    stateChange: StateChangeCallback<AppState, keyof AppState>;
 }
+type StateChangeCallback<T, K extends keyof T> = (attrName?: K, oldVal?: T[K], newVal?: T[K]) => void;
 type EventCallbackListing<K extends keyof EventCallback> = Record<K, EventCallback[K][]>;
 
 export interface TimeWindow {
@@ -35,12 +38,32 @@ interface AppState {
     displayMode: DisplayMode;
     fatalError: Error | null;
     documentReady: boolean;
+    highlightedTimeseries: string | null;
 }
 
 type StoreUpdateCallback<T> = (newValue?: T, oldValue?: T) => void;
 type SubscriptionType<K extends keyof AppState> = Record<K, StoreUpdateCallback<AppState[K]>[]>;
 type IAppStateSubscriptions = SubscriptionType<keyof AppState>;
 
+function newDefaultState(): AppState {
+    const now = new Date().getTime() / 1000;
+    return {
+        overlayText: "",
+        lastUpdateTime: now,
+        minutesDisplayed: config.defaultMinuteSpan,
+        utcOffset: -(new Date().getTimezoneOffset() / 60),
+        dataEndpointBase: config.dataEndpoint,
+        isLoading: false,
+        updateIntervalSeconds: config.reloadIntervalSec,
+        displayMode: "pastMins",
+        fatalError: null,
+        displayWindow: {start: now - config.defaultMinuteSpan * 60, stop: now},
+        documentReady: false,
+        leftTimeseries: [],
+        rightTimeseries: [],
+        highlightedTimeseries: null,
+    };
+}
 
 class AppStateStore {
     private readonly subscriptions: IAppStateSubscriptions;
@@ -48,16 +71,16 @@ class AppStateStore {
     private readonly state: AppState;
     private loaders = 0;
 
-    constructor(initialState: AppState) {
-        this.state = initialState;
+    constructor(initialState?: Partial<AppState>) {
+        this.state = { ...newDefaultState(), ...initialState };
         const subscriptions: Record<string, (() => unknown)[]> = {};
         for (const key in this.state) {
             subscriptions[key] = [];
         }
-        this.eventCallbacks = {newTimeseries: [], timeseriesUpdated: []};
+        this.eventCallbacks = {newTimeseries: [], timeseriesUpdated: [], stateChange: []};
         this.subscriptions = subscriptions as IAppStateSubscriptions;
         this.init();
-        setInterval(() => this.getNewTimeseriesData(), this.state.updateIntervalSeconds * 1000);
+        setInterval(() => this.getNewTimeseriesData().catch(e => AppStore().fatalError(e)), this.state.updateIntervalSeconds * 1000);
     }
 
     async init() {
@@ -65,7 +88,7 @@ class AppStateStore {
         await this.getNewTimeseriesData();
     }
 
-    addTimeseries(timeseries: Timeseries, scale?: ScaleId) {
+    addTimeseriesToScale(timeseries: Timeseries, scale?: ScaleId) {
         const group = scale === ScaleId.Left ? this.state.leftTimeseries : this.state.rightTimeseries;
         if (group.indexOf(timeseries) >= 0) {
             throw new AppStateError("Timeseries has already been added!");
@@ -76,13 +99,21 @@ class AppStateStore {
             group.push(timeseries);
         }
         this.notifyStoreVal(scale === ScaleId.Left ? "leftTimeseries" : "rightTimeseries");
-        this.eventCallbacks["newTimeseries"].forEach(cb => cb(timeseries, scale));
+        this.emit("newTimeseries", timeseries, scale);
         this.updateTimeseriesFromSettings();
     }
 
     private notifyStoreVal<T extends keyof AppState>(subscribedValue: T, newValue?: AppState[T], oldValue?: AppState[T]) {
+        this.emit("stateChange", subscribedValue, newValue, oldValue);
         for (const subscriptionCallback of this.subscriptions[subscribedValue]) {
-            new Promise(() => subscriptionCallback(newValue, oldValue));
+            subscriptionCallback(newValue, oldValue);
+        }
+    }
+
+    private emit<T extends keyof EventCallback>(eventName: T, ...callbackArgs: Parameters<EventCallback[T]>) {
+        for (const sub of this.eventCallbacks[eventName]) {
+            // @ts-ignore
+            sub(...callbackArgs);
         }
     }
 
@@ -97,11 +128,15 @@ class AppStateStore {
             stop = this.state.lastUpdateTime;
         }
         this.addLoad();
-        for (const timeseries of this.state.leftTimeseries) {
-            await timeseries.updateFromWindow(start, stop);
-        }
-        for (const timeseries of this.state.rightTimeseries) {
-            await timeseries.updateFromWindow(start, stop);
+        try {
+            for (const timeseries of this.state.leftTimeseries) {
+                await timeseries.updateFromWindow(start, stop);
+            }
+            for (const timeseries of this.state.rightTimeseries) {
+                await timeseries.updateFromWindow(start, stop);
+            }
+        } catch (e) {
+            AppStore().fatalError(e);
         }
         this.finishLoad();
         this.notifyAllTimeseriesUpdated();
@@ -110,11 +145,15 @@ class AppStateStore {
     private async getNewTimeseriesData() {
         const updateTime = new Date().getTime() / 1000;
         this.addLoad();
-        for (const timeseries of this.state.leftTimeseries) {
-            await timeseries.getLatest();
-        }
-        for (const timeseries of this.state.rightTimeseries) {
-            await timeseries.getLatest();
+        try {
+            for (const timeseries of this.state.leftTimeseries) {
+                await timeseries.getLatest();
+            }
+            for (const timeseries of this.state.rightTimeseries) {
+                await timeseries.getLatest();
+            }
+        } catch (e) {
+            AppStore().fatalError(e);
         }
         this.finishLoad();
         this.setLastUpdateTime(updateTime);
@@ -124,11 +163,11 @@ class AppStateStore {
     private notifyAllTimeseriesUpdated() {
         for (const timeseries of this.state.leftTimeseries) {
             this.notifyStoreVal("leftTimeseries");
-            this.eventCallbacks["timeseriesUpdated"].forEach(cb => cb(timeseries));
+            this.emit("timeseriesUpdated", timeseries);
         }
         for (const timeseries of this.state.rightTimeseries) {
             this.notifyStoreVal("rightTimeseries");
-            this.eventCallbacks["timeseriesUpdated"].forEach(cb => cb(timeseries));
+            this.emit("timeseriesUpdated", timeseries);
         }
     }
 
@@ -146,6 +185,7 @@ class AppStateStore {
 
     setDisplayMode(mode: DisplayMode) {
         this.state.displayMode = mode;
+        this.updateTimeseriesFromSettings();
         this.notifyStoreVal("displayMode");
     }
 
@@ -224,12 +264,65 @@ class AppStateStore {
         this.state.documentReady = isReady;
         this.notifyStoreVal("documentReady");
     }
+
+    setHighlightedTimeseries(name: string | null) {
+        this.state.highlightedTimeseries = name;
+        this.notifyStoreVal("highlightedTimeseries", name);
+    }
+
+    serialiseState(): string {
+        const stateStringParams = [];
+        if (this.state.displayMode === "pastMins") {
+            if (this.state.minutesDisplayed !== 60) {
+                stateStringParams.push(
+                    `minutesDisplayed=${this.state.minutesDisplayed}`,
+                );
+            }
+        } else {
+            stateStringParams.push(
+                `displayWindow=[${this.state.displayWindow.start},${this.state.displayWindow.stop}]`,
+            );
+        }
+        if (this.state.utcOffset !== newDefaultState().utcOffset) {
+            stateStringParams.push(
+                `utcOffset=${this.state.utcOffset}`,
+            );
+        }
+        return stateStringParams.join("&");
+    }
+
+    deserialise(serial: URLSearchParams) {
+        if (serial.get("minutesDisplayed") && serial.get("displayWindow")) {
+            console.warn("Options 'minutesDisplayed' and 'displayWindow' should not be used together. Defaulting to 'displayWindow'.");
+        }
+        if (serial.get("minutesDisplayed")) {
+            this.setDisplayMode("pastMins");
+            this.setMinutesDisplayed(Number(serial.get("minutesDisplayed")));
+        }
+        if (serial.get("utcOffset")) {
+            this.setUtcOffset(Number(serial.get("utcOffset")));
+        }
+        if (serial.get("displayWindow")) {
+            const string = serial.get("displayWindow");
+            const split = string.split(",");
+            if (split.length === 2) {
+                this.setDisplayMode("window");
+                this.setDisplayWindow({ start: Number(split[0].slice(1)), stop: Number(split[1].slice(0, -1))});
+            }
+        }
+        this.emit("stateChange");
+    }
 }
 
 let store: AppStateStore;
 
-export async function initStore(initialState: AppState) {
-    store = new AppStateStore(initialState);
+export async function initStore(initialState?: Partial<AppState> | URLSearchParams) {
+    if (initialState instanceof URLSearchParams) {
+        store = new AppStateStore();
+        store.deserialise(initialState);
+    } else {
+        store = new AppStateStore(initialState);
+    }
     return store;
 }
 

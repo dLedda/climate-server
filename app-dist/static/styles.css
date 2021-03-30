@@ -76,6 +76,7 @@ h1 {
     display: inline-block;
     opacity: 50%;
     font-size: 20px;
+    cursor: pointer;
 }
 .display-mode-widget-mins .minus-button,
 .display-mode-widget-mins .plus-button {
@@ -114,12 +115,49 @@ h1 {
     margin: 10px 0 10px 0;
     background-color: white;
 }
+.display-mode-widget-mins input {
+    border: none;
+    display: inline-block;
+    font-size: 30px;
+    width: 64px;
+    text-align: center;
+    margin: 10px 0 10px 0;
+    background-color: white;
+}
 
+.display-mode-widget input {
+    width: 12em;
+    text-align: center;
+}
 .display-mode-widget-date {
     display: inline-block;
     font-size: 12px;
     line-height: 20px;
     margin: 5px 0 5px 0;
+    transition: background-color 100ms;
+}
+.display-mode-widget-date:hover {
+    background-color: #eaeaea;
+}
+
+.display-mode-option * {
+    cursor: pointer;
+    transition: background-color 100ms;
+}
+.display-mode-option input {
+    display: none;
+}
+.display-mode-option.selected {
+    font-weight: bold;
+}
+.display-mode-option.selected:before {
+    content: "- ";
+}
+.display-mode-option.selected:after {
+    content: " -";
+}
+.display-mode-option:hover {
+    background-color: #eaeaea;
 }
 
 .countdown {
@@ -145,4 +183,20 @@ h1 {
     text-align: center;
     margin: 10px 0 10px 0;
     background-color: white;
+}
+
+.legend-widget li:before {
+    content: "• ";
+    font-size: 12px;
+    font-weight: bold;
+}
+.legend-widget ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+.legend-widget li.highlighted {
+    font-weight: bold;
+    cursor: pointer;
 }

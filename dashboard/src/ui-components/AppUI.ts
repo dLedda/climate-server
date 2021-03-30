@@ -6,12 +6,14 @@ import {GridSize} from "./GridWidget";
 import MessageOverlay from "./MessageOverlay";
 import UIComponent from "./UIComponent";
 import SelectDisplayModeWidget from "./SelectDisplayModeWidget";
+import LegendWidget from "./LegendWidget";
 
 class AppUI extends UIComponent {
     private timezoneWidget: TimezoneWidget;
     private selectModeWidget: SelectDisplayModeWidget;
     private displayModeSettingsWidget: DisplayModeWidget;
     private timerWidget: TimerWidget;
+    private legendWidget: LegendWidget;
     private chartWidget: ClimateChartWidget;
     private element: HTMLDivElement = document.createElement("div");
     private grid: HTMLDivElement = document.createElement("div");
@@ -31,6 +33,7 @@ class AppUI extends UIComponent {
     private setupGrid(size: GridSize) {
         this.setupWidgets();
         this.grid.append(
+            this.legendWidget.current(),
             this.chartWidget.current(),
             this.displayModeSettingsWidget.current(),
             this.selectModeWidget.current(),
@@ -50,10 +53,13 @@ class AppUI extends UIComponent {
             row: "auto", col: 5, width: 1, height: 2,
         });
         this.timezoneWidget = new TimezoneWidget({
-            row: "auto", col: 5, width: 1, height: 2,
+            row: "auto", col: 5, width: 1, height: 1,
         });
         this.timerWidget = new TimerWidget({
-            row: "auto", col: 5, width: 1, height: 3,
+            row: "auto", col: 5, width: 1, height: 2,
+        });
+        this.legendWidget = new LegendWidget({
+            row: "auto", col: 5, width: 1, height: 2,
         });
         this.chartWidget = new ClimateChartWidget({
             row: 1, col: 1, width: 4, height: 10,

@@ -1,11 +1,11 @@
 import {AppStore, DisplayMode, getAppState} from "../StateStore";
 import GridWidget, {GridProps} from "./GridWidget";
 import UIComponent from "./UIComponent";
-import ClimateChart, {ScaleId} from "../ClimateChart";
+import Chart, {ScaleId} from "../chart/Chart";
 
 class ClimateChartWidget extends UIComponent {
     private readonly skeleton: GridWidget;
-    private chart: ClimateChart | null = null;
+    private chart: Chart | null = null;
     private initialised: boolean;
     private displayMode: DisplayMode = "pastMins";
     private latestSnapshotInChartTime: number;
@@ -22,6 +22,7 @@ class ClimateChartWidget extends UIComponent {
         const now = new Date().getTime() / 1000;
         this.latestSnapshotInChartTime = now - getAppState().minutesDisplayed * 60;
         this.setupListeners();
+        this.updateDisplayMode();
     }
 
     updateDimensions() {
@@ -42,6 +43,36 @@ class ClimateChartWidget extends UIComponent {
         AppStore().on("newTimeseries", (timeseries) => this.chart.addTimeseries(timeseries));
         AppStore().subscribeStoreVal("documentReady", () => this.initChart());
         AppStore().subscribeStoreVal("utcOffset", () => this.updateTimezone());
+        AppStore().subscribeStoreVal("highlightedTimeseries", (name) => this.chart.highlightTimeseries(name));
+    }
+
+    private handleScroll(direction: number, magnitude: number, index: number) {
+        let displayedWindow = getAppState().displayWindow;
+        if (getAppState().displayMode === "pastMins") {
+            AppStore().setDisplayMode("window");
+            const now = new Date().getTime() / 1000;
+            displayedWindow = {start: now - getAppState().minutesDisplayed * 60, stop: now};
+        }
+        const beforeIndex = index - displayedWindow.start;
+        const afterIndex = displayedWindow.stop - index;
+        const factor = direction === 1 ? 1.1 : 0.9;
+        const newBeforeIndex = factor * beforeIndex;
+        const newAfterIndex = factor * afterIndex;
+        AppStore().setDisplayWindow({
+            start: index - newBeforeIndex,
+            stop: index + newAfterIndex,
+        });
+    }
+
+    private handleDrag(deltaX: number, deltaY: number, deltaIndex: number) {
+        if (getAppState().displayMode === "pastMins") {
+            AppStore().setDisplayMode("window");
+        }
+        const displayWindow = getAppState().displayWindow;
+        AppStore().setDisplayWindow({
+            start: displayWindow.start + deltaIndex,
+            stop: displayWindow.stop + deltaIndex,
+        });
     }
 
     private updateTimezone() {
@@ -53,9 +84,11 @@ class ClimateChartWidget extends UIComponent {
         try {
             AppStore().addLoad();
             const ctx = this.canvasElement.getContext("2d", {alpha: false});
-            this.chart = new ClimateChart(ctx);
+            this.chart = new Chart(ctx);
             getAppState().leftTimeseries.forEach(timeseries => this.chart.addTimeseries(timeseries, ScaleId.Left));
             getAppState().rightTimeseries.forEach(timeseries => this.chart.addTimeseries(timeseries, ScaleId.Right));
+            this.chart.on("scroll", (...args) => this.handleScroll(...args));
+            this.chart.on("drag", (...args) => this.handleDrag(...args));
             await this.rerender();
             this.initialised = true;
         } catch (e) {
