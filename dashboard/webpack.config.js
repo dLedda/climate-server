@@ -49,7 +49,10 @@ const webpackConfig = {
 
 if (!config.development) {
     webpackConfig.optimization = {
-        minimizer: [new TerserPlugin()],
+        minimizer: [new TerserPlugin({
+            minify: true,
+            parallel: true,
+        })],
 
         splitChunks: {
             cacheGroups: {
