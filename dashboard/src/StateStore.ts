@@ -275,39 +275,64 @@ class AppStateStore {
         if (this.state.displayMode === "pastMins") {
             if (this.state.minutesDisplayed !== 60) {
                 stateStringParams.push(
-                    `minutesDisplayed=${this.state.minutesDisplayed}`,
+                    `last-minutes=${this.state.minutesDisplayed}`,
                 );
             }
         } else {
             stateStringParams.push(
-                `displayWindow=[${this.state.displayWindow.start},${this.state.displayWindow.stop}]`,
+                `from=${Math.floor(this.state.displayWindow.start)}&to=${Math.floor(this.state.displayWindow.stop)}`,
             );
         }
         if (this.state.utcOffset !== newDefaultState().utcOffset) {
             stateStringParams.push(
-                `utcOffset=${this.state.utcOffset}`,
+                `utc-offset=${this.state.utcOffset}`,
             );
         }
         return stateStringParams.join("&");
     }
 
     deserialise(serial: URLSearchParams) {
-        if (serial.get("minutesDisplayed") && serial.get("displayWindow")) {
-            console.warn("Options 'minutesDisplayed' and 'displayWindow' should not be used together. Defaulting to 'displayWindow'.");
+        if (serial.get("last-minutes") && (serial.get("from") || serial.get("to"))) {
+            console.warn("Url param 'last-minutes' cannot be combined with 'from' or 'to'. Defaulting to 'last-minutes'.");
         }
-        if (serial.get("minutesDisplayed")) {
-            this.setDisplayMode("pastMins");
-            this.setMinutesDisplayed(Number(serial.get("minutesDisplayed")));
+        if (serial.get("utc-offset")) {
+            this.setUtcOffset(Number(serial.get("utc-offset")));
         }
-        if (serial.get("utcOffset")) {
-            this.setUtcOffset(Number(serial.get("utcOffset")));
+        if (serial.get("to") && !serial.get("from")) {
+            console.warn("The url param 'to' must always be combined with 'from'. Ignoring.");
         }
-        if (serial.get("displayWindow")) {
-            const string = serial.get("displayWindow");
-            const split = string.split(",");
-            if (split.length === 2) {
-                this.setDisplayMode("window");
-                this.setDisplayWindow({ start: Number(split[0].slice(1)), stop: Number(split[1].slice(0, -1))});
+        if (serial.get("from")) {
+            let from = Number(serial.get("from"));
+            if (isNaN(from)) {
+                const fromDate = new Date(from);
+                if (!isNaN(fromDate.valueOf())) {
+                    from = fromDate.getTime();
+                } else {
+                    console.warn("Param 'from' must be a date must be a number (unix timestamp in seconds) or an ISO string.");
+                    return;
+                }
+            }
+            let to = Number(serial.get("to"));
+            if (isNaN(to)) {
+                const toDate = new Date(to);
+                if (!isNaN(toDate.valueOf())) {
+                    to = toDate.getTime();
+                } else {
+                    console.warn("Param 'to' must be a date must be a number (unix timestamp in seconds) or an ISO string.");
+                    to = this.state.displayWindow.stop;
+                }
+            }
+            const displayWindow = {start: from, stop: to};
+            this.setDisplayWindow(displayWindow);
+            this.setDisplayMode("window");
+        }
+        if (serial.get("last-minutes")) {
+            const pastMins = Number(serial.get("last-minutes"));
+            if (!isNaN(pastMins)) {
+                this.setDisplayMode("pastMins");
+                this.setMinutesDisplayed(pastMins);
+            } else {
+                console.warn("Param 'last-minutes' must be a number");
             }
         }
         this.emit("stateChange");

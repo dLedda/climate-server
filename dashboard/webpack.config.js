@@ -2,7 +2,7 @@ const path = require("path");
 const webpack = require("webpack");
 const config = require("./src/config.json");
 
-const TerserPlugin = require("terser-webpack-plugin");
+const TerserWebpackPlugin = require("terser-webpack-plugin");
 
 const webpackConfig = {
     mode: "development",
@@ -49,10 +49,7 @@ const webpackConfig = {
 
 if (!config.development) {
     webpackConfig.optimization = {
-        minimizer: [new TerserPlugin({
-            minify: true,
-            parallel: true,
-        })],
+        minimizer: [new TerserWebpackPlugin()],
 
         splitChunks: {
             cacheGroups: {

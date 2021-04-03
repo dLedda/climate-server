@@ -7,7 +7,6 @@ import {
     newTempTimeseries,
 } from "./climateTimeseries";
 import {ScaleId} from "./chart/Chart";
-
 export {config};
 
 async function init() {
