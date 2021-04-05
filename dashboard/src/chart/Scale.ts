@@ -8,8 +8,8 @@ export default class Scale {
     private tickCacheDirty = true;
     private bounds: Bounds;
 
-    constructor(bounds: Bounds) {
-        this.bounds = bounds;
+    constructor(bounds?: Bounds) {
+        this.bounds = bounds ?? {height: 0, width: 0, top: 0, left: 0};
     }
 
     updateIndexRange(indexRange: {start: number, stop: number}) {
@@ -25,6 +25,10 @@ export default class Scale {
             }
         }
         this.tickCacheDirty = true;
+    }
+
+    updateBounds(bounds: Bounds) {
+        Object.assign(this.bounds, bounds);
     }
 
     getBounds() {

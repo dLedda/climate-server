@@ -40,8 +40,9 @@ export default class Chart {
     constructor(context: CanvasRenderingContext2D) {
         this.subscriptions = {scroll: [], mousemove: [], drag: []};
         this.ctx = context;
-        this.initLayout();
-        this.updateDimensions();
+        this.leftScale = new Scale();
+        this.rightScale = new Scale();
+        this.updateLayout();
         this.ctx.fillStyle = "rgb(255,255,255)";
         this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
         this.ctx.fill();
@@ -54,12 +55,12 @@ export default class Chart {
         this.ctx.canvas.onwheel = (e) => this.handleScroll(e);
     }
 
-    private initLayout() {
+    updateLayout() {
         const leftScaleInitialWidth = 50;
         const rightScaleInitialWidth = 50;
         const verticalMargins = this.margins.bottom + this.margins.top;
         const horizontalMargins = this.margins.left + this.margins.right;
-        this.leftScale = new Scale({
+        this.leftScale.updateBounds({
             top: this.margins.top,
             left: this.margins.left,
             height: this.ctx.canvas.height - verticalMargins,
@@ -71,17 +72,13 @@ export default class Chart {
             height: this.ctx.canvas.height - verticalMargins,
             width: this.ctx.canvas.width - (horizontalMargins + leftScaleInitialWidth + rightScaleInitialWidth),
         };
-        this.rightScale = new Scale({
+        this.rightScale.updateBounds({
             top: this.margins.top,
             left: this.ctx.canvas.width - this.margins.right - rightScaleInitialWidth,
             height: this.ctx.canvas.height - verticalMargins,
             width: rightScaleInitialWidth,
         });
-    }
-
-    private updateDimensions() {
-        this.chartBounds.width = Number(getComputedStyle(this.ctx.canvas).width.slice(0, -2)) - (this.margins.left + this.margins.right + this.rightScale.getBounds().width + this.leftScale.getBounds().width);
-        this.chartBounds.height = Number(getComputedStyle(this.ctx.canvas).height.slice(0, -2)) - (this.margins.bottom + this.margins.top);
+        this.render();
     }
 
     addTimeseries(timeseries: Timeseries, scale?: ScaleId) {
@@ -141,7 +138,6 @@ export default class Chart {
     }
 
     render() {
-        this.updateDimensions();
         this.clearCanvas();
         this.updateResolution();
         this.renderGuides();
@@ -149,15 +145,43 @@ export default class Chart {
         this.rightScale.updateIndexRange(this.indexRange);
         this.leftScale.listTimeseries().forEach(timeseries => this.renderTimeseries(timeseries, ScaleId.Left));
         this.rightScale.listTimeseries().forEach(timeseries => this.renderTimeseries(timeseries, ScaleId.Right));
+        this.renderMargins();
         this.leftScale.render(this.ctx);
         this.rightScale.render(this.ctx);
         this.renderTooltips();
     }
 
+    private renderMargins() {
+        this.ctx.fillStyle = "rgb(255,255,255)";
+        this.ctx.fillRect(
+            this.ctx.canvas.clientLeft - 1,
+            this.ctx.canvas.clientTop - 1,
+            this.ctx.canvas.width + 1,
+            this.margins.top + 1,
+        );
+        this.ctx.fillRect(
+            this.ctx.canvas.clientLeft + this.ctx.canvas.width - this.margins.right - 1,
+            this.ctx.canvas.clientTop - 1,
+            this.margins.right + 1,
+            this.ctx.canvas.height + 1,
+        );
+        this.ctx.fillRect(
+            this.ctx.canvas.clientLeft - 1,
+            this.ctx.canvas.clientTop - 1,
+            this.margins.left + 1,
+            this.ctx.canvas.height + 1,
+        );
+        this.ctx.fillRect(
+            this.ctx.canvas.clientLeft,
+            this.ctx.canvas.clientTop + this.ctx.canvas.height - this.margins.bottom,
+            this.ctx.canvas.width,
+            this.margins.bottom,
+        );
+    }
+
     private clearCanvas() {
         this.ctx.fillStyle = "rgb(255,255,255)";
         this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-        this.ctx.fill();
     }
 
     private updateResolution() {
@@ -174,13 +198,13 @@ export default class Chart {
     private renderGuides() {
         this.ctx.strokeStyle = "rgb(230, 230, 230)";
         this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
         for (const tick of this.rightScale.getTicks()) {
-            const pos = this.rightScale.getY(tick);
-            this.ctx.beginPath();
+            const pos = Math.floor(this.rightScale.getY(tick));
             this.ctx.moveTo(this.chartBounds.left, pos);
             this.ctx.lineTo(this.chartBounds.left + this.chartBounds.width, pos);
-            this.ctx.stroke();
         }
+        this.ctx.stroke();
     }
 
     private renderTooltips(radius = 20) {
@@ -250,8 +274,8 @@ export default class Chart {
         this.ctx.lineWidth = timeseries.getName() === this.highlightedTimeseries ? 2 : 1;
         let y = scale.getY(timeseriesPoints[0]);
         let x = this.getX(timeseriesPoints[1]);
+        this.ctx.beginPath();
         for (let i = 0; i < timeseriesPoints.length; i += 2 * this.resolution) {
-            this.ctx.beginPath();
             this.ctx.moveTo(Math.round(x), Math.round(y));
             y = 0;
             x = 0;
@@ -262,13 +286,11 @@ export default class Chart {
             y = scale.getY(y / this.resolution);
             x = this.getX(x / this.resolution);
             this.ctx.lineTo(Math.round(x), Math.round(y));
-            this.ctx.stroke();
             if (this.resolution === 1) {
-                this.ctx.beginPath();
                 this.ctx.ellipse(x, y, 2, 2, 0, 0, 2 * Math.PI);
-                this.ctx.stroke();
             }
         }
+        this.ctx.stroke();
     }
 
     private renderTooltip(text: string, x: number, y: number, markerColour: string) {

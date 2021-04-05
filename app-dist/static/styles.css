@@ -11,8 +11,8 @@ html, body {
 }
 
 .main-content-grid {
-    height: 80%;
-    width: 80%;
+    width: calc(100% - 12em);
+    height: calc(100% - 10em);
     display: grid;
     text-align: center;
 }
@@ -199,4 +199,67 @@ h1 {
 .legend-widget li.highlighted {
     font-weight: bold;
     cursor: pointer;
+}
+
+.help-box {
+    position: relative;
+    background-color: #ffffff;
+    border: solid 1px #7b5b2f;
+    width: 40em;
+    padding: 1em;
+    z-index: 1;
+}
+.help-box img {
+}
+.help-box h1 {
+    margin: auto;
+    text-align: center;
+}
+.help-box .image-advice {
+    align-items: center;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    display: flex;
+}
+.help-box .image-advice * {
+    display: inline-block;
+    padding: 0.5em;
+}
+.x-button:before {
+    content: "×";
+    font-size: 1em;
+    line-height: 1em;
+}
+.x-button {
+    cursor: pointer;
+    text-align: center;
+    background-color: white;
+    height: 1.2em;
+    width: 1.2em;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.help-button {
+    cursor: pointer;
+    width: 2em;
+    height: 2em;
+    margin: 0.5em;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+.help-button:hover {
+    filter: brightness(1.1);
+}
+.help-button:active {
+    filter: brightness(0.9);
+}
+
+.button:hover {
+    filter: brightness(1.1);
+}
+.button:active {
+    filter: brightness(0.9);
 }

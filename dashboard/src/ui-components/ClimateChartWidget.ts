@@ -26,6 +26,8 @@ class ClimateChartWidget extends UIComponent {
     }
 
     updateDimensions() {
+        this.canvasElement.width = 0;
+        this.canvasElement.height = 0;
         const skelStyle = getComputedStyle(this.skeleton.current());
         this.canvasElement.height = this.skeleton.current().clientHeight
             - Number(skelStyle.paddingTop.slice(0, -2))
@@ -33,6 +35,7 @@ class ClimateChartWidget extends UIComponent {
         this.canvasElement.width = this.skeleton.current().clientWidth
             - Number(skelStyle.paddingLeft.slice(0, -2))
             - Number(skelStyle.paddingRight.slice(0, -2));
+        this.chart.updateLayout();
     }
 
     private setupListeners() {
@@ -41,18 +44,22 @@ class ClimateChartWidget extends UIComponent {
         AppStore().subscribeStoreVal("displayWindow", () => this.rerender());
         AppStore().on("timeseriesUpdated", () => this.rerender());
         AppStore().on("newTimeseries", (timeseries) => this.chart.addTimeseries(timeseries));
-        AppStore().subscribeStoreVal("documentReady", () => this.initChart());
+        AppStore().subscribeStoreVal("documentReady", async () => {
+            await this.initChart();
+            this.updateDimensions();
+            window.addEventListener("resize", () => {
+                this.updateDimensions();
+            });
+        });
         AppStore().subscribeStoreVal("utcOffset", () => this.updateTimezone());
         AppStore().subscribeStoreVal("highlightedTimeseries", (name) => this.chart.highlightTimeseries(name));
     }
 
     private handleScroll(direction: number, magnitude: number, index: number) {
-        let displayedWindow = getAppState().displayWindow;
         if (getAppState().displayMode === "pastMins") {
-            AppStore().setDisplayMode("window");
-            const now = new Date().getTime() / 1000;
-            displayedWindow = {start: now - getAppState().minutesDisplayed * 60, stop: now};
+            AppStore().emulateLastMinsWithWindow();
         }
+        const displayedWindow = getAppState().displayWindow;
         const beforeIndex = index - displayedWindow.start;
         const afterIndex = displayedWindow.stop - index;
         const factor = direction === 1 ? 1.1 : 0.9;
@@ -66,12 +73,12 @@ class ClimateChartWidget extends UIComponent {
 
     private handleDrag(deltaX: number, deltaY: number, deltaIndex: number) {
         if (getAppState().displayMode === "pastMins") {
-            AppStore().setDisplayMode("window");
+            AppStore().emulateLastMinsWithWindow();
         }
-        const displayWindow = getAppState().displayWindow;
+        const displayedWindow = getAppState().displayWindow;
         AppStore().setDisplayWindow({
-            start: displayWindow.start + deltaIndex,
-            stop: displayWindow.stop + deltaIndex,
+            start: displayedWindow.start + deltaIndex,
+            stop: displayedWindow.stop + deltaIndex,
         });
     }
 

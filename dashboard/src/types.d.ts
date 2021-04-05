@@ -1,4 +1,8 @@
-declare module "chart.js/dist/Chart.bundle.min" {
-    import * as Charts from "chart.js";
-    export default Charts;
+declare module "*.gif" {
+    const value: string;
+    export = value;
+}
+declare module "*.png" {
+    const value: string;
+    export = value;
 }

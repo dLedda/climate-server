@@ -95,7 +95,7 @@ class Timeseries {
             const cacheStopIndex = this.findIndexInCache(stop);
             return this.cache.slice(
                 (cacheStartIndex - (cacheStartIndex) % blockSize),
-                (cacheStopIndex + blockSize - (cacheStopIndex) % blockSize),
+                (cacheStopIndex + blockSize - (cacheStopIndex) % blockSize) + blockSize * 2,
             );
         }
     }

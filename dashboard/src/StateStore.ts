@@ -15,6 +15,7 @@ export interface EventCallback {
     timeseriesUpdated: (timeseries: Timeseries) => void;
     newTimeseries: (timeseries: Timeseries, scale?: ScaleId) => void;
     stateChange: StateChangeCallback<AppState, keyof AppState>;
+    ready: () => void;
 }
 type StateChangeCallback<T, K extends keyof T> = (attrName?: K, oldVal?: T[K], newVal?: T[K]) => void;
 type EventCallbackListing<K extends keyof EventCallback> = Record<K, EventCallback[K][]>;
@@ -39,6 +40,7 @@ interface AppState {
     fatalError: Error | null;
     documentReady: boolean;
     highlightedTimeseries: string | null;
+    showingHelp: boolean;
 }
 
 type StoreUpdateCallback<T> = (newValue?: T, oldValue?: T) => void;
@@ -62,10 +64,11 @@ function newDefaultState(): AppState {
         leftTimeseries: [],
         rightTimeseries: [],
         highlightedTimeseries: null,
+        showingHelp: false,
     };
 }
 
-class AppStateStore {
+class  AppStateStore {
     private readonly subscriptions: IAppStateSubscriptions;
     private readonly eventCallbacks: EventCallbackListing<keyof EventCallback>;
     private readonly state: AppState;
@@ -77,7 +80,7 @@ class AppStateStore {
         for (const key in this.state) {
             subscriptions[key] = [];
         }
-        this.eventCallbacks = {newTimeseries: [], timeseriesUpdated: [], stateChange: []};
+        this.eventCallbacks = {newTimeseries: [], timeseriesUpdated: [], stateChange: [], ready: []};
         this.subscriptions = subscriptions as IAppStateSubscriptions;
         this.init();
         setInterval(() => this.getNewTimeseriesData().catch(e => AppStore().fatalError(e)), this.state.updateIntervalSeconds * 1000);
@@ -86,6 +89,7 @@ class AppStateStore {
     async init() {
         await this.updateTimeseriesFromSettings();
         await this.getNewTimeseriesData();
+        this.emit("ready");
     }
 
     addTimeseriesToScale(timeseries: Timeseries, scale?: ScaleId) {
@@ -191,7 +195,7 @@ class AppStateStore {
 
     setDisplayWindow(newWin: TimeWindow) {
         if (newWin.start < newWin.stop) {
-            if (newWin.stop < this.state.lastUpdateTime) {
+            if (newWin.stop <= this.state.lastUpdateTime) {
                 this.state.displayWindow = {...newWin};
                 this.notifyStoreVal("displayWindow");
                 this.updateTimeseriesFromSettings();
@@ -268,6 +272,24 @@ class AppStateStore {
     setHighlightedTimeseries(name: string | null) {
         this.state.highlightedTimeseries = name;
         this.notifyStoreVal("highlightedTimeseries", name);
+    }
+
+    emulateLastMinsWithWindow() {
+        this.setDisplayMode("window");
+        this.setDisplayWindow({
+            start: this.state.lastUpdateTime - getAppState().minutesDisplayed * 60 + getAppState().utcOffset * 60,
+            stop: this.state.lastUpdateTime
+        });
+    }
+
+    showHelp() {
+        this.state.showingHelp = true;
+        this.notifyStoreVal("showingHelp");
+    }
+
+    hideHelp() {
+        this.state.showingHelp = false;
+        this.notifyStoreVal("showingHelp");
     }
 
     serialiseState(): string {

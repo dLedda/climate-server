@@ -7,6 +7,10 @@ import MessageOverlay from "./MessageOverlay";
 import UIComponent from "./UIComponent";
 import SelectDisplayModeWidget from "./SelectDisplayModeWidget";
 import LegendWidget from "./LegendWidget";
+import HelpModal from "./HelpModal";
+import * as JSX from "../JSXFactory";
+import {AppStore} from "../StateStore";
+import HelpButtonImg from "../../assets/help-button.png";
 
 class AppUI extends UIComponent {
     private timezoneWidget: TimezoneWidget;
@@ -18,14 +22,21 @@ class AppUI extends UIComponent {
     private element: HTMLDivElement = document.createElement("div");
     private grid: HTMLDivElement = document.createElement("div");
     private messageOverlay: MessageOverlay = new MessageOverlay();
+    private helpModal: HelpModal = new HelpModal();
 
     constructor() {
         super();
         this.setupGrid({width: 5, height: 10});
         this.element.append(
-            Object.assign(document.createElement("h1"), { innerText: "Ledda's Room Climate" }),
+            <img
+                alt={"Help"}
+                src={HelpButtonImg}
+                className={"help-button button"}
+                onclick={() => AppStore().showHelp()}/>,
+            <h1>Ledda's Room Climate</h1>,
             this.grid,
             this.messageOverlay.current(),
+            this.helpModal.current(),
         );
         this.element.className = "center";
     }
@@ -33,8 +44,8 @@ class AppUI extends UIComponent {
     private setupGrid(size: GridSize) {
         this.setupWidgets();
         this.grid.append(
-            this.legendWidget.current(),
             this.chartWidget.current(),
+            this.legendWidget.current(),
             this.displayModeSettingsWidget.current(),
             this.selectModeWidget.current(),
             this.timerWidget.current(),
@@ -68,7 +79,6 @@ class AppUI extends UIComponent {
 
     bootstrap(rootNode: string) {
         document.getElementById(rootNode).append(this.element);
-        this.chartWidget.updateDimensions();
     }
 
     current(): HTMLElement {

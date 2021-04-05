@@ -10,23 +10,33 @@ const webpackConfig = {
     plugins: [new webpack.ProgressPlugin()],
 
     module: {
-        rules: [{
-            test: /\.(ts|tsx)$/,
-            loader: "ts-loader",
-            include: [path.resolve(__dirname, "src")],
-            exclude: [/node_modules/]
-        }, {
-            test: /.css$/,
+        rules: [
+            {
+                test: /\.(ts|tsx)$/,
+                loader: "ts-loader",
+                include: [path.resolve(__dirname, "src")],
+                exclude: [/node_modules/]
+            },
+            {
+                test: /.css$/,
 
-            use: [{
-                loader: "style-loader"
-            }, {
-                loader: "css-loader",
-                options: {
-                    sourceMap: true
-                }
+                use: [{
+                    loader: "style-loader"
+                }, {
+                    loader: "css-loader",
+                    options: {
+                        sourceMap: true
+                    }
+                }]
+            },
+            {
+                test: /\.(png|jpe?g|gif|ttf|woff2?|eot|svg)$/i,
+                use: [
+                    {
+                        loader: "file-loader",
+                    },
+                ],
             }]
-        }]
     },
 
     resolve: {
