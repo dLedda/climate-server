@@ -6,14 +6,12 @@ import newByteSeriesRouter from "./byteSeriesRouter";
 
 export function newMainRouter(collections: CollectionRegistry) {
     const router = express.Router();
-    const snapshotRouter = newSnapshotRouter(collections);
-    const byteSeriesRouter = newByteSeriesRouter(collections);
 
     router.get("/dashboard", (req, res) => {
         res.render("index.ejs", { rootUrl: req.app.locals.rootUrl });
     });
-    router.use("/api/snapshots", snapshotRouter);
-    router.use("/api/timeseries", byteSeriesRouter);
+    router.use("/api/snapshots", newSnapshotRouter(collections));
+    router.use("/api/timeseries", newByteSeriesRouter(collections));
     router.use(topLevelErrorHandler);
 
     return router;

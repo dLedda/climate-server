@@ -10,11 +10,19 @@ export async function establishDatabaseConnection() {
             host: process.env.MYSQL_ADDRESS,
             user: process.env.MYSQL_USERNAME,
             password: process.env.MYSQL_PW,
-            database: "climate",
             connectTimeout: 30000,
         });
+        await dbConnection.query("CREATE DATABASE IF NOT EXISTS `climate`;");
+        dbConnection.changeUser({database: "climate"});
+        await dbConnection.query(`CREATE TABLE IF NOT EXISTS \`snapshots\` (
+            \`id\` INT AUTO_INCREMENT PRIMARY KEY, 
+            \`temp\` INT NOT NULL,
+            \`humidity\` INT NOT NULL,
+            \`co2\` INT NOT NULL,
+            \`time\` DATETIME NOT NULL);`
+        );
     } catch (e) {
-        throw new Error(`Couldn't establish a connection with the database: ${e.message}`);
+        throw new Error(`Error setting up the database: ${e.message}`);
     }
     return dbConnection;
 }
