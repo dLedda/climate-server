@@ -4,7 +4,7 @@
   "description": "Server API and frontend dashboard for monitoring climate stats with the Raspberry Pi",
   "scripts": {
     "start": "concurrently -p \"[{name}]\" -n \"server,dashboard\" -c \"bgBlue.gray.bold,bgMagenta.gray.bold\" \"npm:server\" \"npm:dashboard-static\"",
-    "build": "sh ./build.sh",
+    "build": "sh ./setup.sh",
     "server": "cd ./server && npm run dev",
     "dashboard-static": "cd ./dashboard && npm run build-watch",
     "dashboard-serve": "cd ./dashboard && npm run dev"
