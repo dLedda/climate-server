@@ -1,6 +1,6 @@
 {
-  "development": false,
+  "development": true,
   "defaultMinuteSpan": 60,
   "reloadIntervalSec": 30,
-  "dataEndpoint": "/climate/api"
+  "dataEndpoint": "http://192.168.178.21:4040/climate/api"
 }

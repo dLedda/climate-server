@@ -10,7 +10,7 @@ import LegendWidget from "./LegendWidget";
 import HelpModal from "./HelpModal";
 import * as JSX from "../JSXFactory";
 import {AppStore} from "../StateStore";
-import HelpButtonImg from "../../assets/help-button.png";
+import HelpButtonImg from "../../assets/help-button.svg";
 
 class AppUI extends UIComponent {
     private timezoneWidget: TimezoneWidget;

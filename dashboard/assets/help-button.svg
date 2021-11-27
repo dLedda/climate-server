@@ -57,7 +57,7 @@
      inkscape:groupmode="layer"
      id="layer1">
     <ellipse
-       style="fill:#fff1de;fill-opacity:1;fill-rule:evenodd;stroke:#c7ab82;stroke-width:0.573164;stroke-opacity:1;stop-color:#000000"
+       style="fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:#4f6fa0;stroke-width:0.573164;stroke-opacity:1;stop-color:#000000"
        id="path2811"
        cx="4.2333336"
        cy="4.2333336"
@@ -65,7 +65,7 @@
        ry="3.9467514" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:8.0888px;line-height:1.25;font-family:sans-serif;fill:#c7ab82;fill-opacity:1;stroke:none;stroke-width:0.20222;"
+       style="font-style:normal;font-weight:normal;font-size:8.0888px;line-height:1.25;font-family:sans-serif;fill:#4f6fa0;fill-opacity:1;stroke:none;stroke-width:0.20222;"
        x="2.5377054"
        y="6.9956398"
        id="text2809"><tspan
@@ -73,6 +73,6 @@
          id="tspan2807"
          x="2.5377054"
          y="6.9956398"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Bitstream Charter';-inkscape-font-specification:'Bitstream Charter';stroke-width:0.20222;fill:#c7ab82;fill-opacity:1;">?</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Bitstream Charter';-inkscape-font-specification:'Bitstream Charter';stroke-width:0.20222;fill:#4f6fa0;fill-opacity:1;">?</tspan></text>
   </g>
 </svg>

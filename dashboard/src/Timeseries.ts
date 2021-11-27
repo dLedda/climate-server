@@ -33,6 +33,7 @@ class Timeseries {
     private valExtremaOverride?: { high: number, low: number };
     private colour: string;
     private tolerance: number;
+    private historyComplete = false;
 
     constructor(options: TimeseriesOptions) {
         this.cache = new Int32Array();
@@ -58,7 +59,7 @@ class Timeseries {
     getExtremaInRange(start: number, stop: number): Extrema {
         let maxVal = -Infinity;
         let minVal = Infinity;
-        for (let i = this.findIndexInCache(start) - 1; i < this.findIndexInCache(stop) - 1; i += 2) {
+        for (let i = this.findIndexInCache(start) - 1; i < this.findIndexInCache(stop) + 1; i += 2) {
             if (this.cache[i] < minVal) {
                 minVal = this.cache[i];
             }
@@ -69,8 +70,8 @@ class Timeseries {
         return {
             minIndex: this.extrema.minIndex,
             maxIndex: this.extrema.maxIndex,
-            maxVal: this.valExtremaOverride.high > maxVal ? this.valExtremaOverride.high : maxVal,
-            minVal: this.valExtremaOverride.low < minVal ? this.valExtremaOverride.low : minVal,
+            maxVal: this.valExtremaOverride ? Math.max(this.valExtremaOverride.high, maxVal) : maxVal,
+            minVal: this.valExtremaOverride ? Math.min(this.valExtremaOverride.low, minVal) : minVal,
         };
     }
 
@@ -95,7 +96,7 @@ class Timeseries {
             const cacheStopIndex = this.findIndexInCache(stop);
             return this.cache.slice(
                 (cacheStartIndex - (cacheStartIndex) % blockSize),
-                (cacheStopIndex + blockSize - (cacheStopIndex) % blockSize) + blockSize * 2,
+                (cacheStopIndex + blockSize - (cacheStopIndex) % blockSize) + blockSize,
             );
         }
     }
@@ -175,13 +176,17 @@ class Timeseries {
             if (atLeastUntil < priorTo - backDist) {
                 backDist = priorTo - atLeastUntil;
             }
-            const result = await this.loader(priorTo - backDist, priorTo);
+            const requestIndexStart = priorTo - backDist;
+            const result = await this.loader(requestIndexStart, priorTo);
             const newCache = new Int32Array(this.cache.length + result.length);
             newCache.set(result, 0);
             newCache.set(this.cache, result.length);
             this.cache = newCache;
             this.currentEndPointer += result.length;
             this.updateExtremaFrom(result);
+            if (this.extrema.minIndex === priorTo) {
+                this.historyComplete = true;
+            }
         } catch (e) {
             throw new Error(`Error fetching prior data: ${e}`);
         }
@@ -233,6 +238,10 @@ class Timeseries {
                 return middle * 2 + 1;
             }
         }
+    }
+
+    historyIsComplete(): boolean {
+        return this.historyComplete;
     }
 }
 

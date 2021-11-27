@@ -6,21 +6,18 @@ export const newCo2Timeseries = (tolerance: number) => new Timeseries({
     name: "CO₂ (ppm)",
     loader: (start, stop) => loadClimateTimeseriesData("co2", start, stop),
     tolerance,
-    valueRangeOverride: { high: 800, low: 400 },
 });
 
 export const newTempTimeseries = (tolerance: number) => new Timeseries({
     name: "Temperature (°C)",
     loader: (start, stop) => loadClimateTimeseriesData("temp", start, stop),
     tolerance,
-    valueRangeOverride: { high: 30, low: 10 },
 });
 
 export const newHumidityTimeseries = (tolerance: number) => new Timeseries({
     name: "Humidity (%)",
     loader: (start, stop) => loadClimateTimeseriesData("humidity", start, stop),
     tolerance,
-    valueRangeOverride: { high: 75, low: 40 },
 });
 
 async function loadClimateTimeseriesData(dataType: "temp" | "humidity" | "co2", start?: number, stop?: number) {
@@ -50,7 +47,7 @@ async function loadClimateTimeseriesData(dataType: "temp" | "humidity" | "co2", 
         }
         return new Int32Array(data.buffer);
     } catch (e) {
-        const message = "timerseries data couldn't be loaded from the server";
+        const message = "timeseries data couldn't be loaded from the server";
         throw new ClayPIDashboardError(`${message}: ${e}`, message);
     }
 }

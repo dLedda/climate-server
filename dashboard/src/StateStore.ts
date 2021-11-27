@@ -131,37 +131,37 @@ class  AppStateStore {
             start = this.state.lastUpdateTime - this.state.minutesDisplayed * 60;
             stop = this.state.lastUpdateTime;
         }
-        this.addLoad();
-        try {
-            for (const timeseries of this.state.leftTimeseries) {
-                await timeseries.updateFromWindow(start, stop);
-            }
-            for (const timeseries of this.state.rightTimeseries) {
-                await timeseries.updateFromWindow(start, stop);
-            }
-        } catch (e) {
-            AppStore().fatalError(e);
+        const allTimeseries = this.state.leftTimeseries.concat(this.state.rightTimeseries);
+        const allHistoriesComplete = !allTimeseries.some(timeseries => !timeseries.historyIsComplete());
+        if (start < this.getExtrema().minIndex && allHistoriesComplete) {
+            return;
         }
-        this.finishLoad();
-        this.notifyAllTimeseriesUpdated();
+        this.addLoad();
+        const timeseriesFetches: Promise<unknown>[] = [];
+        for (const timeseries of allTimeseries) {
+            timeseriesFetches.push(timeseries.updateFromWindow(start, stop));
+        }
+        await Promise.allSettled(timeseriesFetches).then(() => {
+            this.finishLoad();
+            this.notifyAllTimeseriesUpdated();
+        }).catch((e) => this.fatalError(e));
     }
 
     private async getNewTimeseriesData() {
         const updateTime = new Date().getTime() / 1000;
         this.addLoad();
-        try {
-            for (const timeseries of this.state.leftTimeseries) {
-                await timeseries.getLatest();
-            }
-            for (const timeseries of this.state.rightTimeseries) {
-                await timeseries.getLatest();
-            }
-        } catch (e) {
-            AppStore().fatalError(e);
+        const timeseriesFetches: Promise<unknown>[] = [];
+        for (const timeseries of this.state.leftTimeseries) {
+            timeseriesFetches.push(timeseries.getLatest());
         }
-        this.finishLoad();
-        this.setLastUpdateTime(updateTime);
-        this.notifyAllTimeseriesUpdated();
+        for (const timeseries of this.state.rightTimeseries) {
+            timeseriesFetches.push(timeseries.getLatest());
+        }
+        await Promise.allSettled(timeseriesFetches).then(() => {
+            this.finishLoad();
+            this.setLastUpdateTime(updateTime);
+            this.notifyAllTimeseriesUpdated();
+        }).catch((e) => this.fatalError(e));
     }
 
     private notifyAllTimeseriesUpdated() {
@@ -195,14 +195,51 @@ class  AppStateStore {
 
     setDisplayWindow(newWin: TimeWindow) {
         if (newWin.start < newWin.stop) {
-            if (newWin.stop <= this.state.lastUpdateTime) {
-                this.state.displayWindow = {...newWin};
-                this.notifyStoreVal("displayWindow");
-                this.updateTimeseriesFromSettings();
+            const extrema = this.getExtrema();
+            if (newWin.stop >= extrema.maxIndex) {
+                newWin.stop = extrema.maxIndex;
             }
+            this.state.displayWindow = {...newWin};
+            this.updateTimeseriesFromSettings().then(() => {
+                const newExtrema = this.getExtrema();
+                this.state.displayWindow = {
+                    start: Math.max(newExtrema.minIndex, this.state.displayWindow.start),
+                    stop: Math.min(newExtrema.maxIndex, this.state.displayWindow.stop),
+                };
+                this.notifyStoreVal("displayWindow");
+            });
         } else {
             console.warn(`Invalid display window from ${newWin.start} to ${newWin.stop}`);
         }
+    }
+
+    shiftDisplayWindow(deltaX: number) {
+        const oldWin = {...this.state.displayWindow};
+        this.state.displayWindow.start += deltaX;
+        this.state.displayWindow.stop += deltaX;
+        this.updateTimeseriesFromSettings().then(() => {
+            const newExtrema = this.getExtrema();
+            const blockedBack = newExtrema.minIndex > this.state.displayWindow.start && deltaX < 0;
+            const blockedForward = newExtrema.maxIndex < this.state.displayWindow.stop && deltaX >= 0;
+            if (blockedBack || blockedForward) {
+                this.state.displayWindow = oldWin;
+            }
+            this.notifyStoreVal("displayWindow");
+        });
+    }
+
+    getExtrema() {
+        let minIndex = Infinity;
+        let maxIndex = -Infinity;
+        let minVal = Infinity;
+        let maxVal = -Infinity;
+        for (const timeseries of this.state.leftTimeseries.concat(this.state.rightTimeseries)) {
+            minIndex = Math.min(minIndex, timeseries.getExtrema().minIndex);
+            maxIndex = Math.max(maxIndex, timeseries.getExtrema().maxIndex);
+            minVal = Math.min(minIndex, timeseries.getExtrema().minVal);
+            maxVal = Math.max(maxIndex, timeseries.getExtrema().maxVal);
+        }
+        return {minIndex, maxIndex, minVal, maxVal};
     }
 
     setMinutesDisplayed(mins: number) {

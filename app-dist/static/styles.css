@@ -1,7 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@200;400;500&family=Roboto:wght@200;300;400&display=swap');
+
+:root {
+    --accent-dark: #4f6fa0;
+    --accent-light: #fbfbff;
+}
+
 html, body {
     margin: 0;
     height: 100%;
-    background-color: #fff1de;
+    background-color: var(--accent-light);
+    font-family: 'Roboto', sans-serif;
+    font-weight: lighter;
 }
 
 .overlay {
@@ -44,9 +53,9 @@ html, body {
 
 h1 {
     display: block;
-    font-family: "Georgia", serif;
+    font-family: 'Roboto Slab', serif;
     font-weight: normal;
-    color: #7b5b2f;
+    color: var(--accent-dark);
 }
 
 .widget {
@@ -55,14 +64,15 @@ h1 {
     flex-direction: column;
     margin: 0.5em;
     padding: 1em;
-    border: 0.1em #c7ab82 solid;
+    border: 0.1em var(--accent-dark) solid;
+    border-radius: 0.4em;
     background-color: white;
 }
 
 .widget h2 {
-    font-family: "Georgia", serif;
+    font-family: 'Roboto', sans-serif;
     font-weight: normal;
-    color: #7b5b2f;
+    color: var(--accent-dark);
     font-size: 1em;
     display: block;
 }
@@ -204,7 +214,7 @@ h1 {
 .help-box {
     position: relative;
     background-color: #ffffff;
-    border: solid 1px #7b5b2f;
+    border: solid 1px var(--accent-dark);
     width: 40em;
     padding: 1em;
     z-index: 1;

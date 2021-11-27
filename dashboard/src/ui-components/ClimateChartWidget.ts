@@ -75,11 +75,7 @@ class ClimateChartWidget extends UIComponent {
         if (getAppState().displayMode === "pastMins") {
             AppStore().emulateLastMinsWithWindow();
         }
-        const displayedWindow = getAppState().displayWindow;
-        AppStore().setDisplayWindow({
-            start: displayedWindow.start + deltaIndex,
-            stop: displayedWindow.stop + deltaIndex,
-        });
+        AppStore().shiftDisplayWindow(deltaIndex);
     }
 
     private updateTimezone() {
@@ -96,8 +92,8 @@ class ClimateChartWidget extends UIComponent {
             getAppState().rightTimeseries.forEach(timeseries => this.chart.addTimeseries(timeseries, ScaleId.Right));
             this.chart.on("scroll", (...args) => this.handleScroll(...args));
             this.chart.on("drag", (...args) => this.handleDrag(...args));
-            await this.rerender();
             this.initialised = true;
+            await this.rerender();
         } catch (e) {
             AppStore().fatalError(e);
         } finally {

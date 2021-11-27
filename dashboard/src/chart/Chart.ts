@@ -46,7 +46,6 @@ export default class Chart {
         this.ctx.fillStyle = "rgb(255,255,255)";
         this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
         this.ctx.fill();
-        this.ctx.translate(0.5, 0.5);
         this.ctx.canvas.onmousemove = (e) => this.handleMouseMove(e);
         this.ctx.canvas.onmousedown = (e) => this.dragging = true;
         this.ctx.canvas.onmouseup = (e) => this.dragging = false;
@@ -78,7 +77,6 @@ export default class Chart {
             height: this.ctx.canvas.height - verticalMargins,
             width: rightScaleInitialWidth,
         });
-        this.render();
     }
 
     addTimeseries(timeseries: Timeseries, scale?: ScaleId) {
@@ -138,16 +136,16 @@ export default class Chart {
     }
 
     render() {
-        this.clearCanvas();
+        this.resetCanvas();
         this.updateResolution();
-        this.renderGuides();
         this.leftScale.updateIndexRange(this.indexRange);
         this.rightScale.updateIndexRange(this.indexRange);
+        this.renderGuides();
         this.leftScale.listTimeseries().forEach(timeseries => this.renderTimeseries(timeseries, ScaleId.Left));
         this.rightScale.listTimeseries().forEach(timeseries => this.renderTimeseries(timeseries, ScaleId.Right));
-        this.renderMargins();
         this.leftScale.render(this.ctx);
         this.rightScale.render(this.ctx);
+        this.renderMargins();
         this.renderTooltips();
     }
 
@@ -179,9 +177,11 @@ export default class Chart {
         );
     }
 
-    private clearCanvas() {
+    private resetCanvas() {
         this.ctx.fillStyle = "rgb(255,255,255)";
         this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+        this.ctx.resetTransform();
+        this.ctx.translate(0.5, 0.5);
     }
 
     private updateResolution() {
@@ -200,7 +200,7 @@ export default class Chart {
         this.ctx.lineWidth = 1;
         this.ctx.beginPath();
         for (const tick of this.rightScale.getTicks()) {
-            const pos = Math.floor(this.rightScale.getY(tick));
+            const pos = this.rightScale.getY(tick) | 0;
             this.ctx.moveTo(this.chartBounds.left, pos);
             this.ctx.lineTo(this.chartBounds.left + this.chartBounds.width, pos);
         }
@@ -294,6 +294,7 @@ export default class Chart {
     }
 
     private renderTooltip(text: string, x: number, y: number, markerColour: string) {
+        this.ctx.lineWidth = 1;
         this.ctx.strokeStyle = "rgb(255,0,0)";
         this.ctx.beginPath();
         this.ctx.ellipse(x, y, 5, 5, 0, 0, 2 * Math.PI);

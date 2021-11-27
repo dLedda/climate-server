@@ -7,6 +7,7 @@ export default class Scale {
     private tickCache: number[] = [];
     private tickCacheDirty = true;
     private bounds: Bounds;
+    private margins: {top: number, bottom: number} =  {top: 10, bottom: 10};
 
     constructor(bounds?: Bounds) {
         this.bounds = bounds ?? {height: 0, width: 0, top: 0, left: 0};
@@ -72,7 +73,8 @@ export default class Scale {
     }
 
     getY(value: number) {
-        return this.bounds.top + this.bounds.height - (value - this.valRange.low) / (this.valRange.high - this.valRange.low) * this.bounds.height;
+        const internalHeight = this.bounds.height - this.margins.top - this.margins.bottom;
+        return this.bounds.top + this.bounds.height - this.margins.bottom - (value - this.valRange.low) / (this.valRange.high - this.valRange.low) * internalHeight;
     }
 
     getValue(y: number) {
